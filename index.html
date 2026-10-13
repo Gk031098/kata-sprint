@@ -173,6 +173,14 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 .review .w small { font-weight: 500; color: var(--muted); display: block; }
 .review .tr { color: var(--muted); font-size: 14px; text-align: right; }
 
+/* sound toggle */
+.sound-btn { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10; width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; box-shadow: 0 4px 14px rgb(0 0 0 / .18); }
+.sound-btn svg { width: 24px; height: 24px; }
+.sound-btn path { fill: var(--ink); }
+.sound-btn path.w { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.sound-btn[aria-pressed="false"] { opacity: .7; }
+.wrap { padding-bottom: 88px; }
+
 /* scoreboard */
 .sb-card { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
 .sb-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; }
@@ -227,6 +235,7 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 </head>
 <body>
 
+<button id="sound-btn" class="sound-btn" type="button"></button>
 <div class="wrap" id="app">
   <section id="menu"></section>
   <section id="game" hidden></section>
@@ -423,6 +432,7 @@ const T = {
     nameNeeded: 'Tulis nama anda dahulu (1–20 aksara).', you: 'anda',
     boardNote: 'Permainan anda disimpan di papan skor bersama. Guna nama yang sama di mana-mana peranti untuk menyatukan sejarah anda.',
     noName: 'Tulis nama anda dan tekan Simpan supaya skor anda masuk ke papan skor.',
+    soundOn: 'Bunyi: hidup', soundOff: 'Bunyi: mati',
     tip: 'Petua: main semula tahap yang sama untuk memecahkan rekod anda sendiri.', credit: 'Dicipta dan dibangunkan oleh',
   },
   en: {
@@ -450,6 +460,7 @@ const T = {
     nameNeeded: 'Enter your name first (1–20 characters).', you: 'you',
     boardNote: 'Your games are saved to the shared board. Use the same name on any device to keep your history together.',
     noName: 'Enter your name and press Save so your scores go on the board.',
+    soundOn: 'Sound: on', soundOff: 'Sound: off',
     tip: 'Tip: replay the same level to beat your own best score.', credit: 'Created and developed by',
   },
 };
@@ -479,6 +490,58 @@ function loadBest() { try { return JSON.parse(localStorage.getItem('kataSprint.b
 function saveBest(b) { try { localStorage.setItem('kataSprint.best', JSON.stringify(b)); } catch {} }
 function loadLang() { try { return localStorage.getItem('kataSprint.lang') || 'ms'; } catch { return 'ms'; } }
 function saveLang(l) { try { localStorage.setItem('kataSprint.lang', l); } catch {} }
+
+// ---------- sound (made with Web Audio, no files needed) ----------
+const Sound = (() => {
+  let ctx = null;
+  let on = (() => { try { return localStorage.getItem('kataSprint.sound') !== 'off'; } catch { return true; } })();
+  function audio() {
+    if (!ctx) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ctx = new C(); }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  function tone(freq, start, dur, type = 'sine', vol = 0.15) {
+    const c = audio(); if (!c) return;
+    const t0 = c.currentTime + start;
+    const osc = c.createOscillator(), gain = c.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, t0);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(gain).connect(c.destination);
+    osc.start(t0); osc.stop(t0 + dur + 0.02);
+  }
+  const sounds = {
+    click: () => tone(660, 0, 0.06, 'sine', 0.1),
+    tap: () => tone(520 + Math.random() * 80, 0, 0.07, 'triangle', 0.14),
+    undo: () => tone(300, 0, 0.07, 'triangle', 0.1),
+    correct: () => [523, 659, 784].forEach((f, i) => tone(f, i * 0.07, 0.2, 'triangle', 0.16)),
+    wrong: () => { tone(220, 0, 0.18, 'square', 0.06); tone(165, 0.12, 0.26, 'square', 0.06); },
+    tick: () => tone(1000, 0, 0.05, 'square', 0.05),
+    hint: () => [880, 1175].forEach((f, i) => tone(f, i * 0.06, 0.14, 'sine', 0.12)),
+    win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.11, 0.32, 'triangle', 0.16)),
+    lose: () => [392, 330, 262].forEach((f, i) => tone(f, i * 0.16, 0.34, 'triangle', 0.14)),
+  };
+  return {
+    play(name) { if (on) try { sounds[name](); } catch {} },
+    get on() { return on; },
+    toggle() {
+      on = !on;
+      try { localStorage.setItem('kataSprint.sound', on ? 'on' : 'off'); } catch {}
+      if (on) sounds.click();
+    },
+  };
+})();
+
+function updateSoundBtn() {
+  const b = $('#sound-btn'), t = ui();
+  b.setAttribute('aria-pressed', String(Sound.on));
+  b.setAttribute('aria-label', Sound.on ? t.soundOn : t.soundOff);
+  b.title = Sound.on ? t.soundOn : t.soundOff;
+  b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/>${Sound.on
+    ? '<path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>'
+    : '<path class="w" d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>'}</svg>`;
+}
 
 // ---------- state ----------
 const S = { lang: loadLang() === 'en' ? 'en' : 'ms', best: loadBest(), boardLevel: 'easy' };
@@ -613,6 +676,7 @@ function renderMenu() {
     footer(),
   );
   document.documentElement.lang = S.lang;
+  updateSoundBtn();
 }
 
 // ---------- game ----------
@@ -620,6 +684,7 @@ const G = {};
 function show(id) { for (const s of ['menu', 'game', 'result']) $('#' + s).hidden = s !== id; window.scrollTo(0, 0); }
 
 function startGame(lvl) {
+  Sound.play('click');
   Object.assign(G, {
     lvl, qs: makeRound(lvl), i: 0, score: 0, lives: lvl.lives, hints: lvl.hints,
     streak: 0, bestStreak: 0, correct: 0, log: [], busy: false,
@@ -685,7 +750,7 @@ function renderQuestion() {
   } }, t.quit);
   const actions = h('div', { class: 'actions' }, quitBtn,
     h('div', { style: 'display:flex;gap:10px' },
-      q.type === 'scramble' ? h('button', { class: 'btn', id: 'clear-btn', onclick: () => { G.picks = G.picks.slice(0, G.locked); drawScramble(); } }, t.clear) : null,
+      q.type === 'scramble' ? h('button', { class: 'btn', id: 'clear-btn', onclick: () => { G.picks = G.picks.slice(0, G.locked); Sound.play('undo'); drawScramble(); } }, t.clear) : null,
       hintBtn));
 
   $('#game').replaceChildren(bar, timer, timerRow, card, actions);
@@ -704,12 +769,14 @@ function pickTile(k) {
   const q = G.qs[G.i];
   if (G.busy || G.picks.includes(k) || G.picks.length >= q.answer.length) return;
   G.picks.push(k);
+  Sound.play('tap');
   drawScramble();
   if (G.picks.length === q.answer.length) checkScramble();
 }
 function unpick(k) {
   if (G.busy || k < G.locked || k >= G.picks.length) return;
   G.picks = G.picks.slice(0, k);
+  Sound.play('undo');
   drawScramble();
 }
 function drawScramble() {
@@ -728,6 +795,7 @@ function checkScramble() {
   if (word === q.answer) return finish(true);
   const slots = $('#slots');
   slots.classList.remove('shake'); void slots.offsetWidth; slots.classList.add('shake');
+  Sound.play('wrong');
   G.deadline -= 3000;
   const pen = $('#penalty'); pen.textContent = ui().penalty; setTimeout(() => { if (pen.isConnected) pen.textContent = ''; }, 900);
   setTimeout(() => { if (!G.busy) { G.picks = G.picks.slice(0, G.locked); drawScramble(); } }, 350);
@@ -758,6 +826,7 @@ function useHint() {
     const remove = q.type === 'missing' ? 2 : 1;
     shuffle(wrong).slice(0, remove).forEach(b => { b.classList.add('gone'); b.disabled = true; });
   }
+  Sound.play('hint');
   G.hints--;
   const hb = $('#hint-btn'); hb.textContent = `${ui().hint} (${G.hints})`; hb.disabled = !G.hints;
 }
@@ -765,13 +834,15 @@ function useHint() {
 // timer
 function startTimer(sec) {
   stopTimer();
-  G.dur = sec * 1000; G.deadline = performance.now() + G.dur;
+  G.dur = sec * 1000; G.lastSec = null; G.deadline = performance.now() + G.dur;
   const fill = $('#timer-fill'), txt = $('#timer-txt'), box = $('#timer');
   const tick = now => {
     const left = Math.max(0, G.deadline - now);
     fill.style.transform = `scaleX(${left / G.dur})`;
     txt.textContent = (left / 1000).toFixed(1) + ui().sec;
     box.classList.toggle('low', left / G.dur < 0.3);
+    const secLeft = Math.ceil(left / 1000);
+    if (secLeft <= 3 && secLeft > 0 && secLeft !== G.lastSec) { G.lastSec = secLeft; Sound.play('tick'); }
     if (left <= 0) return finish(false, true);
     G.raf = requestAnimationFrame(tick);
   };
@@ -792,6 +863,7 @@ function finish(ok, timedOut = false, chosen = null) {
     G.lives--; G.streak = 0;
   }
   G.log.push({ q, ok });
+  Sound.play(ok ? 'correct' : 'wrong');
 
   // mark the board
   document.querySelectorAll('#opts .opt').forEach(b => {
@@ -865,6 +937,7 @@ function renderResult() {
       }))),
     footer(),
   );
+  Sound.play(G.lives <= 0 ? 'lose' : 'win');
   show('result');
 }
 
@@ -994,6 +1067,8 @@ function footer() {
     h('p', { class: 'by' }, h('span', {}, `${t.credit} `, h('b', {}, 'Auji Kamaruddin'))));
 }
 
+$('#sound-btn').addEventListener('click', () => { Sound.toggle(); updateSoundBtn(); });
+
 // ---------- keyboard ----------
 document.addEventListener('keydown', e => {
   if ($('#game').hidden || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -1005,7 +1080,7 @@ document.addEventListener('keydown', e => {
       const k = q.tiles.findIndex((x, i) => x === c && !G.picks.includes(i));
       if (k >= 0) pickTile(k);
     } else if (e.key === 'Backspace' && G.picks.length > G.locked) {
-      G.picks.pop(); drawScramble();
+      G.picks.pop(); Sound.play('undo'); drawScramble();
     }
   } else if (/^[1-5]$/.test(e.key)) {
     const b = document.querySelectorAll('#opts .opt')[+e.key - 1];
