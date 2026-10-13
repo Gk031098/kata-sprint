@@ -125,9 +125,13 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 .slot.filled { border: 0; background: var(--tile); color: var(--tile-ink); box-shadow: 0 3px 0 var(--tile-edge); }
 .slot.locked { background: var(--kunyit); }
 .rack { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.rack .tile { width: 48px; height: 54px; font-size: 26px; transition: transform .1s, opacity .1s; }
-.rack .tile:hover:not(:disabled) { transform: translateY(-2px); }
-.rack .tile:disabled { opacity: .18; box-shadow: none; cursor: default; }
+.rack .tile { width: 54px; height: 60px; font-size: 28px; transition: background .1s; }
+.rack .tile:hover:not(:disabled) { background: var(--kunyit-soft); color: var(--ink); }
+.rack .tile:disabled { background: transparent; color: var(--muted); box-shadow: none; outline: 2px dashed var(--line); outline-offset: -2px; opacity: .6; cursor: default; }
+.slot.filled:not(.locked):hover { outline: 2px solid var(--bad); outline-offset: 1px; }
+.scr-help { margin: 0; text-align: center; font-size: 14px; color: var(--muted); }
+.scr-help.err { color: var(--bad); font-weight: 700; }
+@media (pointer: coarse) { .scr-help.kbd { display: none; } }
 .mini { width: clamp(26px, 9vw, 42px); height: clamp(32px, 10.5vw, 48px); font-size: clamp(16px, 5vw, 24px); }
 .mini.blank { background: transparent; border: 2px dashed var(--kunyit); box-shadow: none; color: var(--kunyit); }
 .mini.reveal { background: var(--kunyit); }
@@ -428,6 +432,8 @@ const T = {
     lang: 'Bahasa permainan', level: 'Pilih tahap', perQ: 'Masa', hints: 'Bantuan', lives: 'Nyawa', letters: 'Huruf',
     best: 'Rekod terbaik', none: 'belum ada', sec: 's', how: 'Jenis teka-teki',
     q: 'Soalan', score: 'Skor', streak: 'Kombo', hint: 'Bantuan', quit: 'Keluar', sure: 'Pasti keluar?', clear: 'Padam',
+    undo: '⌫ Undur', kbdHint: 'Boleh juga taip huruf dengan papan kekunci. Backspace untuk undur.',
+    tapHint: 'Ketik huruf dalam petak untuk mengambilnya semula.', wrongOrder: 'Susunan salah (−3s). Ketik huruf dalam petak untuk menukarnya.',
     correct: 'Betul!', wrong: 'Salah', timeout: 'Masa tamat', next: 'Ketik untuk teruskan',
     notCat: 'bukan', againBtn: 'Main lagi', menuBtn: 'Tukar tahap', review: 'Perkataan dalam pusingan ini',
     accuracy: 'Ketepatan', bestStreak: 'Kombo terbaik', newBest: 'Rekod baharu!', over: 'Nyawa habis', done: 'Pusingan tamat',
@@ -470,6 +476,8 @@ const T = {
     lang: 'Game language', level: 'Choose a level', perQ: 'Time', hints: 'Hints', lives: 'Lives', letters: 'Letters',
     best: 'Best score', none: 'none yet', sec: 's', how: 'Puzzle types',
     q: 'Question', score: 'Score', streak: 'Combo', hint: 'Hint', quit: 'Quit', sure: 'Really quit?', clear: 'Clear',
+    undo: '⌫ Undo', kbdHint: 'You can also type the letters on your keyboard. Backspace to undo.',
+    tapHint: 'Tap a letter in the boxes to take it back.', wrongOrder: 'Wrong order (−3s). Tap letters in the boxes to change them.',
     correct: 'Correct!', wrong: 'Wrong', timeout: "Time's up", next: 'Tap to continue',
     notCat: 'is not', againBtn: 'Play again', menuBtn: 'Change level', review: 'Words in this round',
     accuracy: 'Accuracy', bestStreak: 'Best combo', newBest: 'New best!', over: 'Out of lives', done: 'Round complete',
@@ -804,11 +812,13 @@ function renderQuestion() {
   if (q.type === 'scramble') {
     card.append(clueBox());
     const n = q.answer.length;
-    const slots = h('div', { class: 'slots', id: 'slots', style: `grid-template-columns: repeat(${n}, minmax(0, 48px))` },
+    const slots = h('div', { class: 'slots', id: 'slots', style: `grid-template-columns: repeat(${n}, minmax(0, 52px))` },
       Array.from({ length: n }, (_, k) => h('button', { class: 'slot', 'data-k': k, 'aria-label': `slot ${k + 1}`, onclick: () => unpick(k) })));
     const rack = h('div', { class: 'rack', id: 'rack' },
       q.tiles.map((c, k) => h('button', { class: 'tile', 'data-k': k, onclick: () => pickTile(k) }, c)));
-    card.append(slots, rack);
+    card.append(slots, rack,
+      h('p', { class: 'scr-help', id: 'scr-msg', role: 'status' }, t.tapHint),
+      h('p', { class: 'scr-help kbd' }, t.kbdHint));
   } else if (q.type === 'missing') {
     card.append(clueBox());
     card.append(h('div', { class: 'prompt-word', id: 'pattern' },
@@ -835,6 +845,7 @@ function renderQuestion() {
   const actions = h('div', { class: 'actions' },
     h('div', { style: 'display:flex;flex-wrap:wrap;gap:10px' }, quitBtn, audioToggles()),
     h('div', { style: 'display:flex;gap:10px' },
+      q.type === 'scramble' ? h('button', { class: 'btn', id: 'undo-btn', onclick: undoLetter }, t.undo) : null,
       q.type === 'scramble' ? h('button', { class: 'btn', id: 'clear-btn', onclick: () => { G.picks = G.picks.slice(0, G.locked); Sound.play('undo'); drawScramble(); } }, t.clear) : null,
       hintBtn));
 
@@ -860,7 +871,13 @@ function pickTile(k) {
 }
 function unpick(k) {
   if (G.busy || k < G.locked || k >= G.picks.length) return;
-  G.picks = G.picks.slice(0, k);
+  G.picks.splice(k, 1);
+  Sound.play('undo');
+  drawScramble();
+}
+function undoLetter() {
+  if (G.busy || G.picks.length <= G.locked) return;
+  G.picks.pop();
   Sound.play('undo');
   drawScramble();
 }
@@ -873,6 +890,8 @@ function drawScramble() {
     s.classList.toggle('locked', k < G.locked);
   });
   document.querySelectorAll('#rack .tile').forEach((b, k) => b.disabled = G.picks.includes(k));
+  const m = $('#scr-msg');
+  if (m && G.picks.length < q.answer.length) { m.textContent = ui().tapHint; m.classList.remove('err'); }
 }
 function checkScramble() {
   const q = G.qs[G.i];
@@ -883,7 +902,7 @@ function checkScramble() {
   Sound.play('wrong');
   G.deadline -= 3000;
   const pen = $('#penalty'); pen.textContent = ui().penalty; setTimeout(() => { if (pen.isConnected) pen.textContent = ''; }, 900);
-  setTimeout(() => { if (!G.busy) { G.picks = G.picks.slice(0, G.locked); drawScramble(); } }, 350);
+  const m = $('#scr-msg'); m.textContent = ui().wrongOrder; m.classList.add('err');
 }
 
 function choose(v) {
@@ -1168,7 +1187,7 @@ document.addEventListener('keydown', e => {
       const k = q.tiles.findIndex((x, i) => x === c && !G.picks.includes(i));
       if (k >= 0) pickTile(k);
     } else if (e.key === 'Backspace' && G.picks.length > G.locked) {
-      G.picks.pop(); Sound.play('undo'); drawScramble();
+      undoLetter();
     }
   } else if (/^[1-6]$/.test(e.key)) {
     const b = document.querySelectorAll('#opts .opt')[+e.key - 1];
