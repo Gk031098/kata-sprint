@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kata Sprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one narrow column like a game board; letter tiles are the hero, everything else stays quiet. */
+:root {
+  --bg: #E7ECE3; --surface: #F6F8F2; --ink: #1B2924; --muted: #56675F; --line: #C9D4CA;
+  --tile: #FFF6DF; --tile-ink: #2B2416; --tile-edge: #CDB783;
+  --pandan: #23704F; --pandan-ink: #FFFFFF; --kunyit: #B97C0C; --kunyit-soft: #F5E2B3;
+  --bad: #B23E2D; --bad-soft: #F6D9D3; --good-soft: #D3EBDD;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1B17; --surface: #172620; --ink: #E5EEE8; --muted: #94A79D; --line: #2A3E35;
+    --tile: #F1E5C4; --tile-ink: #2B2416; --tile-edge: #9C8247;
+    --pandan: #47B385; --pandan-ink: #0B1712; --kunyit: #E8B23C; --kunyit-soft: #3B3015;
+    --bad: #E8735F; --bad-soft: #3D1F1A; --good-soft: #17382A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1B17; --surface: #172620; --ink: #E5EEE8; --muted: #94A79D; --line: #2A3E35;
+  --tile: #F1E5C4; --tile-ink: #2B2416; --tile-edge: #9C8247;
+  --pandan: #47B385; --pandan-ink: #0B1712; --kunyit: #E8B23C; --kunyit-soft: #3B3015;
+  --bad: #E8735F; --bad-soft: #3D1F1A; --good-soft: #17382A;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 720px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, .lvl:focus-visible { outline: 3px solid var(--kunyit); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+.label { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* tiles */
+.tile {
+  display: inline-grid; place-items: center; background: var(--tile); color: var(--tile-ink);
+  font-family: var(--font-display); font-weight: 800; border: 0; border-radius: 10px;
+  box-shadow: 0 3px 0 var(--tile-edge); position: relative; user-select: none;
+}
+.tile sub { position: absolute; right: 5px; bottom: 2px; font-size: 9px; font-weight: 600; opacity: .55; }
+
+/* menu */
+.hero { display: grid; gap: 14px; padding-block: 12px 24px; }
+.logo { display: flex; flex-wrap: wrap; gap: 6px; }
+.logo .tile { width: 46px; height: 52px; font-size: 28px; animation: drop .5s cubic-bezier(.3,1.4,.5,1) backwards; }
+.logo .gap { width: 14px; }
+.logo .tile.accent { background: var(--kunyit); color: var(--tile-ink); box-shadow: 0 3px 0 var(--tile-edge); }
+@keyframes drop { from { transform: translateY(-18px) rotate(-6deg); opacity: .2; } }
+.tagline { font-size: 18px; color: var(--muted); max-width: 52ch; margin: 0; }
+
+.section { display: grid; gap: 10px; margin-top: 22px; }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; gap: 4px; }
+.seg.two { grid-template-columns: repeat(2, 1fr); }
+.seg button { border: 0; background: transparent; padding: 10px 6px; border-radius: 9px; font-weight: 600; line-height: 1.2; }
+.seg button small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--pandan); color: var(--pandan-ink); }
+.seg button[aria-pressed="true"] small { color: inherit; opacity: .8; }
+
+.levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.lvl {
+  text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px; display: grid; gap: 8px; transition: transform .12s, border-color .12s;
+}
+.lvl:hover { transform: translateY(-2px); border-color: var(--pandan); }
+.lvl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.lvl h3 { font-size: 22px; }
+.pips { display: flex; gap: 3px; }
+.pips i { width: 8px; height: 14px; border-radius: 2px; background: var(--line); }
+.pips i.on { background: var(--kunyit); }
+.lvl dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: 13px; }
+.lvl dt { color: var(--muted); }
+.lvl dd { margin: 0; font-weight: 600; }
+.lvl .best { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; }
+.lvl .best b { color: var(--ink); }
+
+.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.how div { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; font-size: 14px; }
+.how b { display: block; font-family: var(--font-display); font-size: 16px; }
+.how span { color: var(--muted); }
+
+/* game */
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.chip { background: var(--kunyit-soft); color: var(--ink); border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 700; }
+.bar .spacer { flex: 1; }
+.stat { display: grid; line-height: 1.1; text-align: right; }
+.stat b { font-family: var(--font-display); font-size: 22px; }
+.hearts { display: flex; gap: 2px; }
+.hearts svg { width: 20px; height: 20px; }
+.hearts .full { fill: var(--bad); } .hearts .empty { fill: var(--line); }
+.timer { margin-top: 14px; height: 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; }
+.timer i { display: block; height: 100%; background: var(--pandan); transform-origin: left; }
+.timer.low i { background: var(--bad); }
+.timer-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.card { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px 18px; display: grid; gap: 16px; }
+.qhead { display: grid; gap: 4px; }
+.qhead h2 { font-size: 24px; }
+.qhead p { margin: 0; color: var(--muted); }
+.clue { background: var(--bg); border-radius: 12px; padding: 12px 14px; font-size: 17px; font-weight: 600; }
+.clue .label { display: block; margin-bottom: 2px; }
+.prompt-word { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding-block: 6px; }
+
+.slots { display: grid; gap: 6px; justify-content: center; }
+.slot { aspect-ratio: 5/6; width: 100%; border-radius: 10px; border: 2px dashed var(--line); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: clamp(14px, 5vw, 26px); background: transparent; padding: 0; }
+.slot.filled { border: 0; background: var(--tile); color: var(--tile-ink); box-shadow: 0 3px 0 var(--tile-edge); }
+.slot.locked { background: var(--kunyit); }
+.rack { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.rack .tile { width: 48px; height: 54px; font-size: 26px; transition: transform .1s, opacity .1s; }
+.rack .tile:hover:not(:disabled) { transform: translateY(-2px); }
+.rack .tile:disabled { opacity: .18; box-shadow: none; cursor: default; }
+.mini { width: clamp(26px, 9vw, 42px); height: clamp(32px, 10.5vw, 48px); font-size: clamp(16px, 5vw, 24px); }
+.mini.blank { background: transparent; border: 2px dashed var(--kunyit); box-shadow: none; color: var(--kunyit); }
+.mini.reveal { background: var(--kunyit); }
+
+.opts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.opt {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 12px; padding: 14px 12px;
+  font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: .02em;
+  display: flex; align-items: center; gap: 10px; text-align: left; min-width: 0; overflow-wrap: anywhere;
+}
+.opt kbd { font-family: var(--font-body); font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; flex: none; }
+.opt:hover:not(:disabled) { border-color: var(--pandan); }
+.opt.ok { background: var(--good-soft); border-color: var(--pandan); }
+.opt.no { background: var(--bad-soft); border-color: var(--bad); }
+.opt.gone { opacity: .25; }
+.opt:disabled { cursor: default; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-top: 14px; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 600; }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.primary { background: var(--pandan); color: var(--pandan-ink); border-color: var(--pandan); }
+.btn.warn { border-color: var(--bad); color: var(--bad); }
+
+.reveal { border-radius: 14px; padding: 14px 16px; display: grid; gap: 4px; cursor: pointer; }
+.reveal.good { background: var(--good-soft); }
+.reveal.bad { background: var(--bad-soft); }
+.reveal strong { font-family: var(--font-display); font-size: 20px; }
+.reveal .pair { font-weight: 700; }
+.reveal small { color: var(--muted); }
+
+.shake { animation: shake .35s; }
+@keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+.pop { animation: pop .3s; }
+@keyframes pop { 50% { transform: scale(1.04); } }
+
+/* result */
+.result-top { display: grid; gap: 6px; padding-block: 18px 8px; }
+.result-top .big { font-family: var(--font-display); font-weight: 800; font-size: clamp(56px, 16vw, 88px); line-height: 1; }
+.stars { display: flex; gap: 6px; }
+.stars svg { width: 34px; height: 34px; }
+.stars .on { fill: var(--kunyit); } .stars .off { fill: var(--line); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.stats div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.stats b { display: block; font-family: var(--font-display); font-size: 24px; }
+.newbest { background: var(--kunyit); color: var(--tile-ink); font-weight: 700; border-radius: 999px; padding: 3px 12px; justify-self: start; font-size: 14px; }
+.review { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.review li { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 10px; align-items: baseline; padding: 8px 12px; background: var(--surface); border-radius: 10px; border: 1px solid var(--line); }
+.review .mark { font-weight: 800; }
+.review .mark.y { color: var(--pandan); } .review .mark.n { color: var(--bad); }
+.review .w { font-weight: 700; overflow-wrap: anywhere; }
+.review .w small { font-weight: 500; color: var(--muted); display: block; }
+.review .tr { color: var(--muted); font-size: 14px; text-align: right; }
+
+@media (max-width: 480px) {
+  .levels { grid-template-columns: 1fr; }
+  .rack .tile { width: 42px; height: 48px; font-size: 22px; }
+  .opt { font-size: 17px; padding: 12px 10px; }
+  .card { padding: 16px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app">
+  <section id="menu"></section>
+  <section id="game" hidden></section>
+  <section id="result" hidden></section>
+</div>
+
+<script>
+// ---------- Word bank: category | Bahasa Melayu | English | clue (BM) | clue (EN) ----------
+const BANK = `
+an|KUCING|CAT|Haiwan peliharaan yang mengiau|A pet that meows
+an|ANJING|DOG|Menyalak untuk menjaga rumah|Barks to guard the house
+an|IKAN|FISH|Bernafas dengan insang|Breathes with gills
+an|GAJAH|ELEPHANT|Haiwan darat besar yang berbelalai|Huge land animal with a trunk
+an|HARIMAU|TIGER|Kucing besar yang berbelang|A big striped cat
+an|ULAR|SNAKE|Melata tanpa kaki|Slithers without legs
+an|ARNAB|RABBIT|Telinga panjang, suka lobak merah|Long ears, loves carrots
+an|BURUNG|BIRD|Terbang dengan sayap berbulu|Flies on feathered wings
+an|KUDA|HORSE|Ditunggang oleh joki|Ridden by a jockey
+an|MONYET|MONKEY|Suka memanjat dan makan pisang|Climbs trees and eats bananas
+an|SEMUT|ANT|Serangga kecil yang rajin|A tiny hardworking insect
+an|BUAYA|CROCODILE|Reptilia sungai bergigi tajam|River reptile with sharp teeth
+an|PENYU|TURTLE|Bertelur di pantai Terengganu|Lays its eggs on the beach
+an|KELAWAR|BAT|Tidur tergantung terbalik|Sleeps hanging upside down
+an|TENGGILING|PANGOLIN|Bersisik dan menggulung diri|Scaly and rolls into a ball
+an|BADAK|RHINOCEROS|Ada cula di hidung|Has a horn on its nose
+an|ZIRAFAH|GIRAFFE|Lehernya paling panjang|Has the longest neck
+an|KATAK|FROG|Melompat dan berkuak|Hops and croaks
+fr|EPAL|APPLE|Merah atau hijau, rangup|Red or green and crunchy
+fr|PISANG|BANANA|Kuning dan melengkung|Yellow and curved
+fr|MANGGA|MANGO|Kuning manis, boleh dijeruk|Sweet and yellow, also pickled
+fr|DURIAN|DURIAN|Raja buah yang berduri|The thorny king of fruits
+fr|NANAS|PINEAPPLE|Bermahkota dan bermata banyak|Has a crown and many eyes
+fr|TEMBIKAI|WATERMELON|Hijau di luar, merah di dalam|Green outside, red inside
+fr|ANGGUR|GRAPE|Tumbuh bertandan, dikeringkan jadi kismis|Grows in bunches, dried into raisins
+fr|BETIK|PAPAYA|Isi oren, biji hitam|Orange flesh, black seeds
+fr|LIMAU|LIME|Masam dan hijau|Sour and green
+fr|KELAPA|COCONUT|Ada air di dalam tempurung|Water inside a hard shell
+fr|STROBERI|STRAWBERRY|Merah dengan biji di luar|Red with seeds on the outside
+fr|BELIMBING|STARFRUIT|Dipotong, jadi bentuk bintang|Slice it and get stars
+fr|CERI|CHERRY|Kecil, merah, bertangkai|Small and red on a stem
+bd|MATA|EYE|Digunakan untuk melihat|Used for seeing
+bd|TANGAN|HAND|Ada lima jari|Has five fingers
+bd|KAKI|LEG|Digunakan untuk berjalan|Used for walking
+bd|HIDUNG|NOSE|Digunakan untuk menghidu|Used for smelling
+bd|TELINGA|EAR|Digunakan untuk mendengar|Used for hearing
+bd|GIGI|TEETH|Digosok dua kali sehari|Brushed twice a day
+bd|JANTUNG|HEART|Mengepam darah|Pumps blood
+bd|OTAK|BRAIN|Pusat untuk berfikir|Where you do your thinking
+bd|LIDAH|TONGUE|Merasa manis dan masin|Tastes sweet and salty
+bd|BAHU|SHOULDER|Antara leher dan lengan|Between your neck and arm
+bd|TULANG|BONE|Membentuk rangka badan|Makes up your skeleton
+bd|RAMBUT|HAIR|Tumbuh di atas kepala|Grows on your head
+bd|SIKU|ELBOW|Sendi di tengah lengan|The joint in the middle of your arm
+hm|MEJA|TABLE|Tempat makan dan menulis|Where you eat and write
+hm|KERUSI|CHAIR|Tempat untuk duduk|Something to sit on
+hm|PINTU|DOOR|Dibuka untuk masuk|Open it to come in
+hm|TINGKAP|WINDOW|Kaca untuk melihat ke luar|Glass for looking outside
+hm|KATIL|BED|Tempat tidur|Where you sleep
+hm|BANTAL|PILLOW|Alas kepala ketika tidur|Rest your head on it at night
+hm|CERMIN|MIRROR|Menunjukkan bayang diri|Shows your reflection
+hm|PERIUK|POT|Untuk memasak nasi|For cooking rice
+hm|SUDU|SPOON|Untuk menyuap sup|For eating soup
+hm|GARPU|FORK|Bercabang untuk mencucuk makanan|Has prongs to pick up food
+hm|ALMARI|WARDROBE|Tempat menyimpan pakaian|Where clothes are kept
+hm|TELEVISYEN|TELEVISION|Untuk menonton rancangan|For watching shows
+hm|LAMPU|LAMP|Memberi cahaya|Gives off light
+al|LAUT|SEA|Air masin yang luas|Wide salty water
+al|SUNGAI|RIVER|Air yang mengalir ke laut|Water flowing to the sea
+al|GUNUNG|MOUNTAIN|Tanah yang paling tinggi|Very high land
+al|HUJAN|RAIN|Air yang turun dari awan|Water falling from clouds
+al|AWAN|CLOUD|Putih dan gebu di langit|White and fluffy in the sky
+al|BULAN|MOON|Bersinar pada waktu malam|Shines at night
+al|MATAHARI|SUN|Bintang yang paling dekat|Our nearest star
+al|PELANGI|RAINBOW|Tujuh warna selepas hujan|Seven colours after the rain
+al|POKOK|TREE|Ada batang dan daun|Has a trunk and leaves
+al|HUTAN|FOREST|Penuh dengan pokok|Full of trees
+al|PULAU|ISLAND|Tanah dikelilingi air|Land surrounded by water
+al|KILAT|LIGHTNING|Cahaya terang ketika ribut|A bright flash in a storm
+al|TASIK|LAKE|Air tenang dikelilingi daratan|Still water surrounded by land
+al|BINTANG|STAR|Berkelip di langit malam|Twinkles in the night sky
+mk|NASI|RICE|Makanan ruji rakyat Malaysia|Malaysia's staple food
+mk|ROTI|BREAD|Dibakar daripada tepung|Baked from flour
+mk|TELUR|EGG|Dihasilkan oleh ayam|Laid by a hen
+mk|GULA|SUGAR|Butiran putih yang manis|Sweet white grains
+mk|GARAM|SALT|Membuatkan makanan masin|Makes food salty
+mk|SUSU|MILK|Minuman putih daripada lembu|A white drink from cows
+mk|SAYUR|VEGETABLE|Makanan hijau yang berkhasiat|Healthy green food
+mk|DAGING|MEAT|Daripada lembu atau kambing|Comes from cows or goats
+mk|KEJU|CHEESE|Dibuat daripada susu|Made from milk
+mk|MENTEGA|BUTTER|Disapu pada roti|Spread on bread
+mk|SANDWIC|SANDWICH|Inti di antara dua keping roti|A filling between two slices of bread
+mk|MADU|HONEY|Dihasilkan oleh lebah|Made by bees
+mk|KEK|CAKE|Dipotong pada hari jadi|Cut on birthdays
+sk|BUKU|BOOK|Ada banyak muka surat|Has many pages
+sk|PENSEL|PENCIL|Boleh menulis dan dipadam|Writes and can be erased
+sk|GURU|TEACHER|Mengajar di dalam kelas|Teaches the class
+sk|MURID|PUPIL|Belajar di sekolah|Learns at school
+sk|PEMADAM|ERASER|Membuang kesan pensel|Removes pencil marks
+sk|PEMBARIS|RULER|Mengukur garis lurus|Measures straight lines
+sk|KAMUS|DICTIONARY|Mencari makna perkataan|Look up what words mean
+sk|PERPUSTAKAAN|LIBRARY|Tempat meminjam buku|Where you borrow books
+sk|PEPERIKSAAN|EXAMINATION|Ujian besar hujung tahun|The big end-of-year test
+sk|MATEMATIK|MATHEMATICS|Subjek tentang nombor|The subject about numbers
+sk|SAINS|SCIENCE|Subjek dengan eksperimen|The subject with experiments
+sk|KALKULATOR|CALCULATOR|Mengira dengan pantas|Does sums quickly
+sk|KELAS|CLASSROOM|Bilik untuk belajar|The room where you learn
+kj|DOKTOR|DOCTOR|Merawat pesakit|Treats patients
+kj|POLIS|POLICE|Menangkap penjenayah|Catches criminals
+kj|JURUTERBANG|PILOT|Menerbangkan kapal terbang|Flies an aeroplane
+kj|JURURAWAT|NURSE|Membantu doktor di wad|Helps doctors on the ward
+kj|PETANI|FARMER|Bercucuk tanam|Grows crops
+kj|NELAYAN|FISHERMAN|Menangkap ikan di laut|Catches fish at sea
+kj|ARKITEK|ARCHITECT|Mereka bentuk bangunan|Designs buildings
+kj|JURUTERA|ENGINEER|Membina jambatan dan mesin|Builds bridges and machines
+kj|PEGUAM|LAWYER|Membela orang di mahkamah|Defends people in court
+kj|WARTAWAN|JOURNALIST|Menulis berita|Writes the news
+kj|ANGKASAWAN|ASTRONAUT|Pergi ke angkasa lepas|Travels to outer space
+kj|BOMBA|FIREFIGHTER|Memadam kebakaran|Puts out fires
+kj|POSMEN|POSTMAN|Menghantar surat|Delivers letters
+pg|KERETA|CAR|Empat roda di jalan raya|Four wheels on the road
+pg|BAS|BUS|Membawa ramai penumpang|Carries many passengers
+pg|KAPAL|SHIP|Belayar merentas lautan|Sails across the ocean
+pg|BASIKAL|BICYCLE|Dikayuh dengan kaki|Pedalled with your feet
+pg|MOTOSIKAL|MOTORCYCLE|Dua roda dengan enjin|Two wheels with an engine
+pg|KERETAPI|TRAIN|Bergerak di atas landasan|Runs on rails
+pg|HELIKOPTER|HELICOPTER|Ada kipas di atas, boleh terapung|Rotor on top, can hover
+pg|PESAWAT|AEROPLANE|Terbang membawa penumpang|Flies passengers through the sky
+pg|TEKSI|TAXI|Kereta sewa bermeter|A hired car with a meter
+pg|PERAHU|BOAT|Didayung di sungai|Rowed along a river
+pg|LORI|TRUCK|Membawa barang berat|Carries heavy goods
+pg|ROKET|ROCKET|Dilancarkan ke angkasa|Launched into space
+ps|GEMBIRA|HAPPY|Rasa suka hati|Feeling glad
+ps|SEDIH|SAD|Rasa ingin menangis|Feeling like crying
+ps|MARAH|ANGRY|Muka merah, suara tinggi|Red face, raised voice
+ps|TAKUT|SCARED|Rasa ketika ternampak hantu|How you feel when you see a ghost
+ps|MALU|SHY|Pipi merah di depan orang ramai|Red cheeks in front of a crowd
+ps|BOSAN|BORED|Tiada apa-apa untuk dibuat|Nothing at all to do
+ps|TERKEJUT|SURPRISED|Rasa apabila disergah|When someone jumps out at you
+ps|CEMBURU|JEALOUS|Mahukan apa yang orang lain ada|Wanting what others have
+ps|BANGGA|PROUD|Rasa selepas menang|How you feel after winning
+ps|RISAU|WORRIED|Fikir perkara buruk akan berlaku|Thinking something bad will happen
+ps|TENANG|CALM|Damai dan tidak gelabah|Peaceful and unhurried
+ps|KECEWA|DISAPPOINTED|Harapan tidak tercapai|When your hopes are not met
+ps|BERSEMANGAT|ENTHUSIASTIC|Penuh tenaga dan minat|Full of energy and interest
+`.trim().split('\n').map((line, id) => {
+  const [cat, ms, en, cms, cen] = line.split('|');
+  return { id, cat, ms, en, cms, cen };
+});
+
+const CATS = {
+  an: ['Haiwan', 'Animals'], fr: ['Buah-buahan', 'Fruit'], bd: ['Anggota badan', 'Body parts'],
+  hm: ['Barang di rumah', 'Things at home'], al: ['Alam semula jadi', 'Nature'], mk: ['Makanan', 'Food'],
+  sk: ['Sekolah', 'School'], kj: ['Pekerjaan', 'Jobs'], pg: ['Pengangkutan', 'Transport'], ps: ['Perasaan', 'Feelings'],
+};
+
+const LEVELS = [
+  { id: 'easy',   name: ['Mudah', 'Easy'],             time: 30, hints: 3, lives: 3, hide: 1, decoys: 0, odd: 4, mult: 1,   len: [3, 5],  sameCat: false },
+  { id: 'medium', name: ['Sederhana', 'Medium'],       time: 22, hints: 2, lives: 3, hide: 2, decoys: 0, odd: 4, mult: 1.5, len: [5, 7],  sameCat: false },
+  { id: 'hard',   name: ['Sukar', 'Hard'],             time: 16, hints: 1, lives: 3, hide: 2, decoys: 1, odd: 5, mult: 2,   len: [7, 9],  sameCat: true },
+  { id: 'super',  name: ['Super Sukar', 'Super Hard'], time: 12, hints: 0, lives: 2, hide: 3, decoys: 2, odd: 5, mult: 3,   len: [9, 99], sameCat: true },
+];
+const ROUND = 12;
+
+const T = {
+  ms: {
+    tagline: 'Teka-teki otak yang pantas. Susun huruf, cari yang ganjil dan lawan masa sebelum jam tamat.',
+    lang: 'Bahasa perkataan', uiLang: 'Bahasa arahan', level: 'Pilih tahap', perQ: 'Masa', hints: 'Bantuan', lives: 'Nyawa', letters: 'Huruf',
+    best: 'Rekod terbaik', none: 'belum ada', sec: 's', how: 'Jenis teka-teki',
+    q: 'Soalan', score: 'Skor', streak: 'Kombo', hint: 'Bantuan', quit: 'Keluar', sure: 'Pasti keluar?', clear: 'Padam',
+    correct: 'Betul!', wrong: 'Salah', timeout: 'Masa tamat', next: 'Ketik untuk teruskan',
+    notCat: 'bukan', againBtn: 'Main lagi', menuBtn: 'Tukar tahap', review: 'Perkataan dalam pusingan ini',
+    accuracy: 'Ketepatan', bestStreak: 'Kombo terbaik', newBest: 'Rekod baharu!', over: 'Nyawa habis', done: 'Pusingan tamat',
+    penalty: '−3s',
+    types: {
+      scramble: ['Susun Huruf', 'Ketik huruf mengikut susunan yang betul.'],
+      missing: ['Huruf Hilang', 'Pilih huruf yang melengkapkan perkataan.'],
+      odd: ['Cari yang Ganjil', 'Satu perkataan bukan dari kumpulan yang sama.'],
+      clue: ['Teka Kata', 'Pilih perkataan yang sepadan dengan petunjuk.'],
+      translate: ['Terjemah', 'Pilih terjemahan yang betul.'],
+    },
+    clueLbl: 'Petunjuk', catLbl: 'Kategori',
+  },
+  en: {
+    tagline: 'A fast brain puzzle. Unscramble letters, spot the odd one out and beat the clock.',
+    lang: 'Word language', uiLang: 'Instruction language', level: 'Choose a level', perQ: 'Time', hints: 'Hints', lives: 'Lives', letters: 'Letters',
+    best: 'Best score', none: 'none yet', sec: 's', how: 'Puzzle types',
+    q: 'Question', score: 'Score', streak: 'Combo', hint: 'Hint', quit: 'Quit', sure: 'Really quit?', clear: 'Clear',
+    correct: 'Correct!', wrong: 'Wrong', timeout: "Time's up", next: 'Tap to continue',
+    notCat: 'is not', againBtn: 'Play again', menuBtn: 'Change level', review: 'Words in this round',
+    accuracy: 'Accuracy', bestStreak: 'Best combo', newBest: 'New best!', over: 'Out of lives', done: 'Round complete',
+    penalty: '−3s',
+    types: {
+      scramble: ['Unscramble', 'Tap the letters in the right order.'],
+      missing: ['Missing Letters', 'Pick the letters that complete the word.'],
+      odd: ['Odd One Out', 'One word does not belong with the others.'],
+      clue: ['Guess the Word', 'Pick the word that matches the clue.'],
+      translate: ['Translate', 'Pick the correct translation.'],
+    },
+    clueLbl: 'Clue', catLbl: 'Category',
+  },
+};
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const VOWELS = 'AEIOU', CONS = 'BCDFGHJKLMNPRSTWY';
+const other = l => l === 'ms' ? 'en' : 'ms';
+const li = l => l === 'en' ? 1 : 0;
+function h(tag, attrs = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'html') el.innerHTML = v;
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) el.append(k.nodeType ? k : String(k));
+  return el;
+}
+const WORDSET = { ms: new Set(BANK.map(e => e.ms)), en: new Set(BANK.map(e => e.en)) };
+
+function loadBest() { try { return JSON.parse(localStorage.getItem('kataSprint.best') || '{}'); } catch { return {}; } }
+function saveBest(b) { try { localStorage.setItem('kataSprint.best', JSON.stringify(b)); } catch {} }
+function loadLang() { try { return localStorage.getItem('kataSprint.lang') || 'ms'; } catch { return 'ms'; } }
+function saveLang(l) { try { localStorage.setItem('kataSprint.lang', l); } catch {} }
+function loadUi() { try { return localStorage.getItem('kataSprint.ui') || 'ms'; } catch { return 'ms'; } }
+function saveUi(l) { try { localStorage.setItem('kataSprint.ui', l); } catch {} }
+
+// ---------- state ----------
+const S = { lang: loadLang(), ui: loadUi(), best: loadBest() };
+const ui = () => T[S.ui];
+const uiL = () => S.ui === 'en' ? 1 : 0;
+
+// ---------- question generation ----------
+function poolFor(lang, lvl, used, extra = () => true) {
+  const inRange = (e, lo, hi) => e[lang].length >= lo && e[lang].length <= hi && !used.has(e.id) && extra(e);
+  let p = BANK.filter(e => inRange(e, lvl.len[0], lvl.len[1]));
+  if (p.length < 6) p = BANK.filter(e => inRange(e, lvl.len[0] - 2, lvl.len[1] + 3));
+  if (p.length < 4) p = BANK.filter(e => !used.has(e.id) && extra(e));
+  return p;
+}
+function distractors(target, lang, n, lvl, field) {
+  let cands = BANK.filter(e => e.id !== target.id && e[field] !== target[field] && e.ms !== e.en);
+  if (lvl.sameCat) {
+    const same = shuffle(cands.filter(e => e.cat === target.cat));
+    const rest = shuffle(cands.filter(e => e.cat !== target.cat));
+    return same.concat(rest).slice(0, n);
+  }
+  return shuffle(cands).slice(0, n);
+}
+
+const GEN = {
+  scramble(lang, lvl, used) {
+    const e = pick(poolFor(lang, lvl, used));
+    const word = e[lang];
+    let letters = word.split('');
+    for (let i = 0; i < lvl.decoys; i++) letters.push(pick((VOWELS + CONS).split('')));
+    let tiles;
+    do { tiles = shuffle(letters); } while (tiles.slice(0, word.length).join('') === word && word.length > 1);
+    return { type: 'scramble', lang, entry: e, answer: word, tiles };
+  },
+  missing(lang, lvl, used) {
+    const e = pick(poolFor(lang, lvl, used, x => x[lang].length >= 4));
+    const word = e[lang];
+    const n = Math.min(lvl.hide, word.length - 2);
+    const idx = shuffle([...word].map((_, i) => i)).slice(0, n).sort((a, b) => a - b);
+    const ans = idx.map(i => word[i]).join('');
+    const opts = new Set([ans]);
+    let tries = 0;
+    while (opts.size < 4 && tries++ < 400) {
+      const combo = ans.split('').map(c => {
+        if (Math.random() < 0.5 && tries < 300) return c;
+        return pick((VOWELS.includes(c) ? VOWELS : CONS).split('').filter(x => x !== c));
+      }).join('');
+      const filled = [...word]; idx.forEach((p, k) => filled[p] = combo[k]);
+      if (combo !== ans && !WORDSET[lang].has(filled.join(''))) opts.add(combo);
+    }
+    return { type: 'missing', lang, entry: e, answer: ans, idx, options: shuffle([...opts]) };
+  },
+  odd(lang, lvl, used) {
+    const lo = Math.max(3, lvl.len[0] - 2);
+    const okLen = e => e[lang].length >= lo && !used.has(e.id);
+    const byCat = {};
+    BANK.filter(okLen).forEach(e => (byCat[e.cat] ||= []).push(e));
+    let cats = Object.keys(byCat).filter(c => byCat[c].length >= lvl.odd - 1);
+    if (!cats.length) { BANK.forEach(e => (byCat[e.cat] ||= []).push(e)); cats = Object.keys(CATS); }
+    const c = pick(cats);
+    const group = shuffle(byCat[c]).slice(0, lvl.odd - 1);
+    const odd = pick(BANK.filter(e => e.cat !== c && okLen(e)));
+    const options = shuffle([...group, odd].map(e => e[lang]));
+    return { type: 'odd', lang, entry: odd, cat: c, answer: odd[lang], options };
+  },
+  clue(lang, lvl, used) {
+    const e = pick(poolFor(lang, lvl, used));
+    const options = shuffle([e, ...distractors(e, lang, 3, lvl, lang)].map(x => x[lang]));
+    return { type: 'clue', lang, entry: e, answer: e[lang], options };
+  },
+  translate(lang, lvl, used) {
+    const to = other(lang);
+    const e = pick(poolFor(lang, lvl, used, x => x.ms !== x.en));
+    const options = shuffle([e, ...distractors(e, to, 3, lvl, to)].map(x => x[to]));
+    return { type: 'translate', lang, to, entry: e, answer: e[to], options };
+  },
+};
+
+function makeRound(lvl) {
+  const types = ['scramble', 'missing', 'odd', 'clue'];
+  if (S.lang === 'mix') types.push('translate');
+  const seq = [];
+  while (seq.length < ROUND) {
+    const block = shuffle(types);
+    if (seq.length && block[0] === seq[seq.length - 1]) block.push(block.shift());
+    seq.push(...block);
+  }
+  const used = new Set();
+  return seq.slice(0, ROUND).map(type => {
+    const lang = S.lang === 'mix' ? pick(['ms', 'en']) : S.lang;
+    const q = GEN[type](lang, lvl, used);
+    used.add(q.entry.id);
+    return q;
+  });
+}
+
+// ---------- menu ----------
+function renderMenu() {
+  const t = ui();
+  const L = uiL();
+  const logo = h('div', { class: 'logo', 'aria-label': 'Kata Sprint' },
+    [...'KATA'].map((c, i) => h('span', { class: 'tile', style: `animation-delay:${i * 60}ms`, 'aria-hidden': 'true' }, c)),
+    h('span', { class: 'gap' }),
+    [...'SPRINT'].map((c, i) => h('span', { class: 'tile' + (i === 0 ? ' accent' : ''), style: `animation-delay:${(i + 4) * 60}ms`, 'aria-hidden': 'true' }, c)),
+  );
+  const langs = [['ms', 'Bahasa Melayu', 'BM'], ['en', 'English', 'EN'], ['mix', 'Campur', 'BM + EN']];
+  const seg = h('div', { class: 'seg', role: 'group', 'aria-label': t.lang },
+    langs.map(([id, name, sub]) => h('button', {
+      id: 'lang-' + id, 'aria-pressed': String(S.lang === id),
+      onclick: () => { S.lang = id; saveLang(id); renderMenu(); },
+    }, name, h('small', {}, sub))));
+  const cards = LEVELS.map((lvl, i) => {
+    const best = S.best[`${S.lang}-${lvl.id}`];
+    return h('button', { class: 'lvl', id: 'lvl-' + lvl.id, onclick: () => startGame(lvl) },
+      h('div', { class: 'lvl-head' },
+        h('h3', {}, lvl.name[L]),
+        h('div', { class: 'pips', 'aria-hidden': 'true' }, [0, 1, 2, 3].map(k => h('i', { class: k <= i ? 'on' : '' })))),
+      h('dl', {},
+        h('dt', {}, t.perQ), h('dd', { class: 'num' }, `${lvl.time}${t.sec}`),
+        h('dt', {}, t.letters), h('dd', { class: 'num' }, lvl.len[1] > 50 ? `${lvl.len[0]}+` : `${lvl.len[0]}–${lvl.len[1]}`),
+        h('dt', {}, t.lives), h('dd', { class: 'num' }, lvl.lives),
+        h('dt', {}, t.hints), h('dd', { class: 'num' }, lvl.hints)),
+      h('div', { class: 'best' }, `${t.best}: `, best ? h('b', { class: 'num' }, best) : t.none));
+  });
+  const types = S.lang === 'mix' ? Object.keys(t.types) : Object.keys(t.types).filter(k => k !== 'translate');
+  $('#menu').replaceChildren(
+    h('div', { class: 'hero' }, logo, h('p', { class: 'tagline' }, t.tagline)),
+    h('div', { class: 'section' }, h('span', { class: 'label' }, t.lang), seg),
+    h('div', { class: 'section' }, h('span', { class: 'label' }, t.uiLang),
+      h('div', { class: 'seg two', role: 'group', 'aria-label': t.uiLang },
+        [['ms', 'Bahasa Melayu', 'Arahan dalam BM'], ['en', 'English', 'Instructions in English']].map(([id, name, sub]) =>
+          h('button', { id: 'ui-' + id, 'aria-pressed': String(S.ui === id), onclick: () => { S.ui = id; saveUi(id); renderMenu(); } },
+            name, h('small', {}, sub))))),
+    h('div', { class: 'section' }, h('span', { class: 'label' }, t.level), h('div', { class: 'levels' }, cards)),
+    h('div', { class: 'section' }, h('span', { class: 'label' }, t.how),
+      h('div', { class: 'how' }, types.map(k => h('div', {}, h('b', {}, t.types[k][0]), h('span', {}, t.types[k][1]))))),
+  );
+}
+
+// ---------- game ----------
+const G = {};
+function show(id) { for (const s of ['menu', 'game', 'result']) $('#' + s).hidden = s !== id; window.scrollTo(0, 0); }
+
+function startGame(lvl) {
+  Object.assign(G, {
+    lvl, qs: makeRound(lvl), i: 0, score: 0, lives: lvl.lives, hints: lvl.hints,
+    streak: 0, bestStreak: 0, correct: 0, log: [], busy: false,
+  });
+  show('game');
+  renderQuestion();
+}
+
+const heart = full => `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="${full ? 'full' : 'empty'}" d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.1 0 3.6 1.2 4.4 2.5h1.8c.8-1.3 2.3-2.5 4.4-2.5 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>`;
+
+function renderQuestion() {
+  const t = ui(), q = G.qs[G.i], L = li(q.lang);
+  G.busy = false; G.picks = []; G.locked = 0;
+  const lvlName = G.lvl.name[uiL()];
+
+  const bar = h('div', { class: 'bar' },
+    h('span', { class: 'chip' }, lvlName),
+    h('span', { class: 'num' }, `${t.q} ${G.i + 1}/${ROUND}`),
+    h('div', { class: 'hearts', html: Array.from({ length: G.lvl.lives }, (_, k) => heart(k < G.lives)).join(''), 'aria-label': `${t.lives}: ${G.lives}` }),
+    h('span', { class: 'spacer' }),
+    h('div', { class: 'stat' }, h('span', { class: 'label' }, t.streak), h('b', { class: 'num' }, `×${G.streak}`)),
+    h('div', { class: 'stat' }, h('span', { class: 'label' }, t.score), h('b', { class: 'num', id: 'score' }, G.score)));
+
+  const timer = h('div', { class: 'timer', id: 'timer' }, h('i', { id: 'timer-fill' }));
+  const timerRow = h('div', { class: 'timer-row' }, h('span', { id: 'timer-txt', class: 'num' }, ''), h('span', { id: 'penalty' }, ''));
+
+  const [title, instr] = t.types[q.type];
+  const langTag = S.lang === 'mix' ? (q.type === 'translate' ? ` · ${q.lang.toUpperCase()} → ${q.to.toUpperCase()}` : ` · ${q.lang.toUpperCase()}`) : '';
+  const card = h('div', { class: 'card', id: 'card' },
+    h('div', { class: 'qhead' }, h('span', { class: 'label' }, title + langTag), h('p', {}, instr)));
+
+  const clueBox = () => h('div', { class: 'clue' }, h('span', { class: 'label' }, `${t.clueLbl} · ${CATS[q.entry.cat][L]}`), L ? q.entry.cen : q.entry.cms);
+
+  if (q.type === 'scramble') {
+    card.append(clueBox());
+    const n = q.answer.length;
+    const slots = h('div', { class: 'slots', id: 'slots', style: `grid-template-columns: repeat(${n}, minmax(0, 48px))` },
+      Array.from({ length: n }, (_, k) => h('button', { class: 'slot', 'data-k': k, 'aria-label': `slot ${k + 1}`, onclick: () => unpick(k) })));
+    const rack = h('div', { class: 'rack', id: 'rack' },
+      q.tiles.map((c, k) => h('button', { class: 'tile', 'data-k': k, onclick: () => pickTile(k) }, c)));
+    card.append(slots, rack);
+  } else if (q.type === 'missing') {
+    card.append(clueBox());
+    card.append(h('div', { class: 'prompt-word', id: 'pattern' },
+      [...q.entry[q.lang]].map((c, k) => q.idx.includes(k)
+        ? h('span', { class: 'tile mini blank', 'data-k': k }, '?')
+        : h('span', { class: 'tile mini' }, c))));
+    card.append(optionGrid(q.options.map(o => o.split('').join(' · '))));
+  } else if (q.type === 'odd') {
+    card.append(optionGrid(q.options));
+  } else if (q.type === 'clue') {
+    card.append(clueBox(), optionGrid(q.options));
+  } else if (q.type === 'translate') {
+    card.append(h('div', { class: 'prompt-word' }, [...q.entry[q.lang]].map(c => h('span', { class: 'tile mini' }, c))));
+    card.append(optionGrid(q.options));
+  }
+
+  const hintBtn = h('button', { class: 'btn', id: 'hint-btn', onclick: useHint, disabled: G.hints ? false : 'disabled' }, `${t.hint} (${G.hints})`);
+  const quitBtn = h('button', { class: 'btn warn', id: 'quit-btn', onclick: e => {
+    const b = e.currentTarget;
+    if (b.dataset.armed) { stopTimer(); clearTimeout(G.advTimer); G.busy = false; show('menu'); renderMenu(); return; }
+    b.dataset.armed = '1'; b.textContent = t.sure;
+    setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = t.quit; } }, 2500);
+  } }, t.quit);
+  const actions = h('div', { class: 'actions' }, quitBtn,
+    h('div', { style: 'display:flex;gap:10px' },
+      q.type === 'scramble' ? h('button', { class: 'btn', id: 'clear-btn', onclick: () => { G.picks = G.picks.slice(0, G.locked); drawScramble(); } }, t.clear) : null,
+      hintBtn));
+
+  $('#game').replaceChildren(bar, timer, timerRow, card, actions);
+  startTimer(G.lvl.time);
+}
+
+function optionGrid(labels) {
+  const q = G.qs[G.i];
+  const raw = q.type === 'missing' ? q.options : q.options;
+  return h('div', { class: 'opts', id: 'opts' }, labels.map((lab, k) =>
+    h('button', { class: 'opt', 'data-v': raw[k], onclick: () => choose(raw[k]) }, h('kbd', {}, k + 1), lab)));
+}
+
+// scramble interaction
+function pickTile(k) {
+  const q = G.qs[G.i];
+  if (G.busy || G.picks.includes(k) || G.picks.length >= q.answer.length) return;
+  G.picks.push(k);
+  drawScramble();
+  if (G.picks.length === q.answer.length) checkScramble();
+}
+function unpick(k) {
+  if (G.busy || k < G.locked || k >= G.picks.length) return;
+  G.picks = G.picks.slice(0, k);
+  drawScramble();
+}
+function drawScramble() {
+  const q = G.qs[G.i];
+  document.querySelectorAll('#slots .slot').forEach((s, k) => {
+    const p = G.picks[k];
+    s.textContent = p != null ? q.tiles[p] : '';
+    s.classList.toggle('filled', p != null);
+    s.classList.toggle('locked', k < G.locked);
+  });
+  document.querySelectorAll('#rack .tile').forEach((b, k) => b.disabled = G.picks.includes(k));
+}
+function checkScramble() {
+  const q = G.qs[G.i];
+  const word = G.picks.map(p => q.tiles[p]).join('');
+  if (word === q.answer) return finish(true);
+  const slots = $('#slots');
+  slots.classList.remove('shake'); void slots.offsetWidth; slots.classList.add('shake');
+  G.deadline -= 3000;
+  const pen = $('#penalty'); pen.textContent = ui().penalty; setTimeout(() => { if (pen.isConnected) pen.textContent = ''; }, 900);
+  setTimeout(() => { if (!G.busy) { G.picks = G.picks.slice(0, G.locked); drawScramble(); } }, 350);
+}
+
+function choose(v) {
+  if (G.busy) return;
+  const q = G.qs[G.i];
+  finish(v === q.answer, false, v);
+}
+
+function useHint() {
+  if (G.busy || !G.hints) return;
+  const q = G.qs[G.i];
+  if (q.type === 'scramble') {
+    // keep the correct prefix, then place the next correct letter and lock it
+    let k = 0;
+    while (k < G.picks.length && q.tiles[G.picks[k]] === q.answer[k]) k++;
+    G.picks = G.picks.slice(0, k);
+    if (k >= q.answer.length) return;
+    const tile = q.tiles.findIndex((c, i) => c === q.answer[k] && !G.picks.includes(i));
+    G.picks.push(tile);
+    G.locked = G.picks.length;
+    drawScramble();
+    if (G.picks.length === q.answer.length) checkScramble();
+  } else {
+    const wrong = [...document.querySelectorAll('#opts .opt:not(.gone)')].filter(b => b.dataset.v !== q.answer);
+    const remove = q.type === 'missing' ? 2 : 1;
+    shuffle(wrong).slice(0, remove).forEach(b => { b.classList.add('gone'); b.disabled = true; });
+  }
+  G.hints--;
+  const hb = $('#hint-btn'); hb.textContent = `${ui().hint} (${G.hints})`; hb.disabled = !G.hints;
+}
+
+// timer
+function startTimer(sec) {
+  stopTimer();
+  G.dur = sec * 1000; G.deadline = performance.now() + G.dur;
+  const fill = $('#timer-fill'), txt = $('#timer-txt'), box = $('#timer');
+  const tick = now => {
+    const left = Math.max(0, G.deadline - now);
+    fill.style.transform = `scaleX(${left / G.dur})`;
+    txt.textContent = (left / 1000).toFixed(1) + ui().sec;
+    box.classList.toggle('low', left / G.dur < 0.3);
+    if (left <= 0) return finish(false, true);
+    G.raf = requestAnimationFrame(tick);
+  };
+  G.raf = requestAnimationFrame(tick);
+}
+function stopTimer() { cancelAnimationFrame(G.raf); }
+
+function finish(ok, timedOut = false, chosen = null) {
+  if (G.busy) return;
+  G.busy = true; stopTimer();
+  const t = ui(), q = G.qs[G.i], L = li(q.lang);
+  const left = Math.max(0, G.deadline - performance.now());
+  let pts = 0;
+  if (ok) {
+    pts = Math.round((100 * G.lvl.mult + 50 * G.lvl.mult * left / G.dur) * (1 + 0.1 * Math.min(G.streak, 10)));
+    G.score += pts; G.streak++; G.correct++; G.bestStreak = Math.max(G.bestStreak, G.streak);
+  } else {
+    G.lives--; G.streak = 0;
+  }
+  G.log.push({ q, ok });
+
+  // mark the board
+  document.querySelectorAll('#opts .opt').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.v === q.answer) b.classList.add('ok');
+    else if (b.dataset.v === chosen) b.classList.add('no');
+  });
+  document.querySelectorAll('#rack .tile, #slots .slot').forEach(b => b.disabled = true);
+  if (q.type === 'missing') document.querySelectorAll('#pattern .blank').forEach(s => {
+    s.textContent = q.entry[q.lang][+s.dataset.k]; s.classList.remove('blank'); s.classList.add('reveal');
+  });
+  if (q.type === 'scramble' && !ok) document.querySelectorAll('#slots .slot').forEach((s, k) => {
+    s.textContent = q.answer[k]; s.classList.add('filled');
+  });
+  $('#score').textContent = G.score;
+  document.querySelector('.hearts').innerHTML = Array.from({ length: G.lvl.lives }, (_, k) => heart(k < G.lives)).join('');
+
+  const e = q.entry, o = other(q.lang);
+  const pair = q.type === 'odd'
+    ? `${e[q.lang]} ${t.notCat} ${CATS[q.cat][uiL()].toLowerCase()}`
+    : `${e[q.lang]} = ${e[o]}`;
+  const head = ok ? `${t.correct} +${pts}` : (timedOut ? t.timeout : t.wrong);
+  const rev = h('div', { class: 'reveal ' + (ok ? 'good' : 'bad'), role: 'status', onclick: advance },
+    h('strong', {}, head), h('span', { class: 'pair' }, pair), h('small', {}, t.next));
+  $('#card').append(rev);
+  $('#card').classList.add(ok ? 'pop' : 'shake');
+  G.advTimer = setTimeout(advance, ok ? 1300 : 2200);
+}
+
+function advance() {
+  clearTimeout(G.advTimer);
+  if (!G.busy) return;
+  G.i++;
+  if (G.lives <= 0 || G.i >= ROUND) return renderResult();
+  renderQuestion();
+}
+
+// ---------- result ----------
+const star = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="${on ? 'on' : 'off'}" d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z"/></svg>`;
+function renderResult() {
+  const t = ui(), L = uiL();
+  const answered = G.log.length;
+  const acc = answered ? Math.round(100 * G.correct / ROUND) : 0;
+  const stars = acc >= 90 ? 3 : acc >= 70 ? 2 : acc >= 40 ? 1 : 0;
+  const key = `${S.lang}-${G.lvl.id}`;
+  const isBest = G.score > 0 && G.score > (S.best[key] || 0);
+  if (isBest) { S.best[key] = G.score; saveBest(S.best); }
+
+  $('#result').replaceChildren(
+    h('div', { class: 'result-top' },
+      h('span', { class: 'label' }, `${G.lives <= 0 ? t.over : t.done} · ${G.lvl.name[L]}`),
+      h('div', { class: 'big num' }, G.score),
+      h('div', { class: 'stars', html: [0, 1, 2].map(k => star(k < stars)).join(''), 'aria-label': `${stars}/3` }),
+      isBest ? h('span', { class: 'newbest' }, t.newBest) : null),
+    h('div', { class: 'stats' },
+      h('div', {}, h('span', { class: 'label' }, t.accuracy), h('b', { class: 'num' }, `${G.correct}/${ROUND}`)),
+      h('div', {}, h('span', { class: 'label' }, t.bestStreak), h('b', { class: 'num' }, `×${G.bestStreak}`)),
+      h('div', {}, h('span', { class: 'label' }, t.best), h('b', { class: 'num' }, S.best[key] || 0))),
+    h('div', { class: 'actions' },
+      h('button', { class: 'btn', id: 'menu-btn', onclick: () => { show('menu'); renderMenu(); } }, t.menuBtn),
+      h('button', { class: 'btn primary', id: 'again-btn', onclick: () => startGame(G.lvl) }, t.againBtn)),
+    h('div', { class: 'section' },
+      h('span', { class: 'label' }, t.review),
+      h('ul', { class: 'review' }, G.log.map(({ q, ok }) => {
+        const ql = li(q.lang), o = other(q.lang);
+        return h('li', {},
+          h('span', { class: 'mark ' + (ok ? 'y' : 'n') }, ok ? '✓' : '✗'),
+          h('span', { class: 'w' }, q.entry[q.lang], h('small', {}, `${t.types[q.type][0]} · ${CATS[q.entry.cat][L]}`)),
+          h('span', { class: 'tr' }, q.entry[o]));
+      }))),
+  );
+  show('result');
+}
+
+// ---------- keyboard ----------
+document.addEventListener('keydown', e => {
+  if ($('#game').hidden || e.metaKey || e.ctrlKey || e.altKey) return;
+  const q = G.qs[G.i];
+  if (G.busy) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); advance(); } return; }
+  if (q.type === 'scramble') {
+    const c = e.key.toUpperCase();
+    if (/^[A-Z]$/.test(c)) {
+      const k = q.tiles.findIndex((x, i) => x === c && !G.picks.includes(i));
+      if (k >= 0) pickTile(k);
+    } else if (e.key === 'Backspace' && G.picks.length > G.locked) {
+      G.picks.pop(); drawScramble();
+    }
+  } else if (/^[1-5]$/.test(e.key)) {
+    const b = document.querySelectorAll('#opts .opt')[+e.key - 1];
+    if (b && !b.disabled) b.click();
+  }
+});
+
+renderMenu();
+</script>
+</body>
+</html>
