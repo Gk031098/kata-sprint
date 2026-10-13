@@ -439,6 +439,7 @@ const T = {
     board: 'Papan Skor', boardSub: 'Skor terbaik setiap pemain', recentSub: 'Permainan paling baharu',
     top: 'Pemain terbaik', recent: 'Permainan terkini', yourName: 'Nama anda', save: 'Simpan',
     saved: 'Nama disimpan.', sent: 'Skor anda telah disimpan di papan skor.', everyone: 'Semua', onlyMe: 'Saya sahaja',
+    allLevels: 'Semua tahap', colLevel: 'Tahap',
     colPlayer: 'Pemain', colTitle: 'Gelaran', colGames: 'Main', colBest: 'Terbaik', colScore: 'Skor', colWhen: 'Bila',
     loading: 'Memuatkan…', lbEmpty: 'Belum ada skor. Jadilah yang pertama!', lbError: 'Tidak dapat menyambung ke papan skor. Cuba lagi sebentar.',
     nameNeeded: 'Tulis nama anda dahulu (1–20 aksara).', you: 'anda',
@@ -479,6 +480,7 @@ const T = {
     board: 'Scoreboard', boardSub: 'Best score per player', recentSub: 'Latest games played',
     top: 'Top players', recent: 'Recent games', yourName: 'Your name', save: 'Save',
     saved: 'Name saved.', sent: 'Your score is saved to the scoreboard.', everyone: 'Everyone', onlyMe: 'Only me',
+    allLevels: 'All levels', colLevel: 'Level',
     colPlayer: 'Player', colTitle: 'Level reached', colGames: 'Games', colBest: 'Best', colScore: 'Score', colWhen: 'When',
     loading: 'Loading…', lbEmpty: 'No scores yet. Be the first!', lbError: 'Could not reach the scoreboard. Try again in a moment.',
     nameNeeded: 'Enter your name first (1–20 characters).', you: 'you',
@@ -746,7 +748,7 @@ function renderMenu() {
         h('b', {}, t.types[k][0]), h('span', {}, t.types[k][1]), h('small', {}, t.practiceMeta)))));
 
   $('#menu').replaceChildren(top, controls, banner, practice,
-    db ? scoreboard({ level: lvl.id }) : null,
+    db ? scoreboard({ level: 'all' }) : null,
     footer());
   document.documentElement.lang = S.lang;
 }
@@ -998,7 +1000,7 @@ function renderResult() {
     h('div', { class: 'actions' },
       h('button', { class: 'btn', id: 'menu-btn', onclick: () => { show('menu'); renderMenu(); } }, t.menuBtn),
       h('button', { class: 'btn primary', id: 'again-btn', onclick: () => startGame(G.lvl, G.mode) }, t.againBtn)),
-    db ? scoreboard({ level: G.lvl.id, pending: !G.mode && G.score > 0 ? { score: G.score, correct: G.correct, level: G.lvl.id, lang: S.lang } : null }) : null,
+    db ? scoreboard({ level: 'all', pending: !G.mode && G.score > 0 ? { score: G.score, correct: G.correct, level: G.lvl.id, lang: S.lang } : null }) : null,
     h('div', { class: 'section' },
       h('span', { class: 'label' }, t.review),
       h('ul', { class: 'review' }, G.log.map(({ q, ok }) => {
@@ -1072,8 +1074,9 @@ function scoreboard({ level, pending = null }) {
   async function load() {
     const req = ++st.req;
     st.rows = null; draw();
-    const { data, error } = await db.from('scores').select('id,name,score,correct,created_at')
-      .eq('level', st.level).eq('lang', S.lang).order('created_at', { ascending: false }).limit(1000);
+    let query = db.from('scores').select('id,name,score,correct,level,lang,created_at');
+    if (st.level !== 'all') query = query.eq('level', st.level);
+    const { data, error } = await query.order('created_at', { ascending: false }).limit(1000);
     if (req !== st.req) return;
     st.error = !!error; st.rows = data || []; draw();
   }
@@ -1087,7 +1090,7 @@ function scoreboard({ level, pending = null }) {
   function draw() {
     const me = loadName().trim().toLowerCase();
     const levelSelect = h('select', { id: 'sb-level', 'aria-label': t.level, onchange: e => { st.level = e.target.value; load(); } },
-      LEVELS.map(l => h('option', { value: l.id, selected: l.id === st.level ? 'selected' : false }, l.name[L])));
+      [{ id: 'all', name: [t.allLevels, t.allLevels] }, ...LEVELS].map(l => h('option', { value: l.id, selected: l.id === st.level ? 'selected' : false }, l.name[L])));
     const head = h('div', { class: 'sb-head' },
       h('div', {}, h('h2', {}, t.board), h('p', { class: 'sb-sub' }, `${st.tab === 'top' ? t.boardSub : t.recentSub} · `, levelSelect)),
       h('div', { class: 'seg two sb-tabs', role: 'group' }, [['top', t.top], ['recent', t.recent]].map(([id, label]) =>
@@ -1095,6 +1098,8 @@ function scoreboard({ level, pending = null }) {
     const chips = h('div', { class: 'chips', role: 'group' }, [['all', t.everyone], ['me', t.onlyMe]].map(([id, label]) =>
       h('button', { class: 'chip-btn', 'aria-pressed': String(st.who === id), onclick: () => { st.who = id; draw(); } }, label)));
 
+    // where a score came from, e.g. "Super Sukar · BM"
+    const where = r => `${LEVELS.find(l => l.id === r.level)?.name[L] ?? r.level} · ${r.lang === 'en' ? 'EN' : 'BM'}`;
     let body;
     if (st.rows === null) body = h('p', { class: 'sb-empty' }, t.loading);
     else if (st.error) body = h('p', { class: 'sb-empty' }, t.lbError);
@@ -1109,18 +1114,20 @@ function scoreboard({ level, pending = null }) {
           else { p.games++; if (r.score > p.best.score) p.best = r; }
         }
         const list = [...players.values()].sort((a, b) => b.best.score - a.best.score).slice(0, 20);
-        body = table([['#'], [t.colPlayer], [t.colTitle, 'tt'], [t.colGames, 'r'], [t.colBest, 'r']],
+        body = table([['#'], [t.colPlayer], [t.colTitle, 'tt'], [t.colLevel, 'tt'], [t.colGames, 'r'], [t.colBest, 'r']],
           list.map((p, i) => h('tr', { class: [i < 3 ? 'top3' : '', p.key === me ? 'me' : ''].join(' ') },
             h('td', { class: 'rk' }, i + 1),
-            h('td', { class: 'pl' }, p.name, p.key === me ? ` (${t.you})` : '', h('small', { class: 'mt' }, rankTitle(p.best.correct))),
+            h('td', { class: 'pl' }, p.name, p.key === me ? ` (${t.you})` : '', h('small', { class: 'mt' }, `${rankTitle(p.best.correct)} · ${where(p.best)}`)),
             h('td', { class: 'tt' }, rankTitle(p.best.correct)),
+            h('td', { class: 'tt' }, where(p.best)),
             h('td', { class: 'r' }, p.games),
             h('td', { class: 'r best' }, p.best.score))));
       } else {
-        body = table([[t.colPlayer], [t.colTitle, 'tt'], [t.colScore, 'r'], [t.colWhen, 'r']],
+        body = table([[t.colPlayer], [t.colTitle, 'tt'], [t.colLevel, 'tt'], [t.colScore, 'r'], [t.colWhen, 'r']],
           rows.slice(0, 20).map(r => h('tr', { class: r.id === st.myId ? 'me' : '' },
-            h('td', { class: 'pl' }, r.name, h('small', { class: 'mt' }, rankTitle(r.correct))),
+            h('td', { class: 'pl' }, r.name, h('small', { class: 'mt' }, `${rankTitle(r.correct)} · ${where(r)}`)),
             h('td', { class: 'tt' }, rankTitle(r.correct)),
+            h('td', { class: 'tt' }, where(r)),
             h('td', { class: 'r best' }, r.score),
             h('td', { class: 'r when' }, timeAgo(r.created_at)))));
       }
