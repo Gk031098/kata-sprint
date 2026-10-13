@@ -70,6 +70,8 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 .lvlseg button { border: 0; background: transparent; padding: 9px 14px; border-radius: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
 .lvlseg button:hover { color: var(--ink); }
 .lvlseg button[aria-pressed="true"] { background: var(--pandan); color: var(--pandan-ink); }
+#lvl-ultra { color: var(--bad); }
+#lvl-ultra[aria-pressed="true"] { background: var(--bad); color: var(--pandan-ink); }
 .bars { display: inline-flex; gap: 2px; }
 .bars i { width: 5px; height: 14px; border-radius: 2px; background: currentColor; opacity: .3; }
 .bars i.on { opacity: 1; }
@@ -403,6 +405,7 @@ const LEVELS = [
   { id: 'medium', name: ['Sederhana', 'Medium'],       time: 22, hints: 2, lives: 3, hide: 2, decoys: 0, odd: 4, mult: 1.5, len: [5, 7],  sameCat: false },
   { id: 'hard',   name: ['Sukar', 'Hard'],             time: 16, hints: 1, lives: 3, hide: 2, decoys: 1, odd: 5, mult: 2,   len: [7, 9],  sameCat: true },
   { id: 'super',  name: ['Super Sukar', 'Super Hard'], time: 12, hints: 0, lives: 2, hide: 3, decoys: 2, odd: 5, mult: 3,   len: [9, 99], sameCat: true },
+  { id: 'ultra',  name: ['Super Duper Sukar', 'Super Duper Hard'], time: 7, hints: 0, lives: 1, hide: 4, decoys: 4, odd: 6, mult: 5, len: [10, 99], sameCat: true, opts: 6, hideCat: true },
 ];
 const ROUND = 12, PRACTICE = 6;
 
@@ -420,6 +423,7 @@ const T = {
       medium: '22 saat, perkataan 5–7 huruf, 2 huruf hilang, 2 bantuan. Mula mencabar.',
       hard: '16 saat, perkataan 7–9 huruf, huruf palsu dan pilihan mengelirukan, 1 bantuan.',
       super: '12 saat, perkataan 9 huruf ke atas, 2 nyawa, tiada bantuan. Untuk juara sahaja.',
+      ultra: '7 saat, perkataan 10+ huruf, 4 huruf palsu, 6 pilihan, 1 nyawa, tiada bantuan, tiada kategori. Hampir mustahil.',
     },
     lang: 'Bahasa permainan', level: 'Pilih tahap', perQ: 'Masa', hints: 'Bantuan', lives: 'Nyawa', letters: 'Huruf',
     best: 'Rekod terbaik', none: 'belum ada', sec: 's', how: 'Jenis teka-teki',
@@ -461,6 +465,7 @@ const T = {
       medium: '22 seconds, 5–7 letter words, 2 missing letters, 2 hints. Starts to bite.',
       hard: '16 seconds, 7–9 letter words, decoy letters and tricky options, 1 hint.',
       super: '12 seconds, words of 9+ letters, 2 lives, no hints. Champions only.',
+      ultra: '7 seconds, 10+ letter words, 4 decoy letters, 6 choices, 1 life, no hints, no categories. Nearly impossible.',
     },
     lang: 'Game language', level: 'Choose a level', perQ: 'Time', hints: 'Hints', lives: 'Lives', letters: 'Letters',
     best: 'Best score', none: 'none yet', sec: 's', how: 'Puzzle types',
@@ -651,7 +656,7 @@ const GEN = {
     const ans = idx.map(i => word[i]).join('');
     const opts = new Set([ans]);
     let tries = 0;
-    while (opts.size < 4 && tries++ < 400) {
+    while (opts.size < (lvl.opts || 4) && tries++ < 600) {
       const combo = ans.split('').map(c => {
         if (Math.random() < 0.5 && tries < 300) return c;
         return pick((VOWELS.includes(c) ? VOWELS : CONS).split('').filter(x => x !== c));
@@ -667,16 +672,21 @@ const GEN = {
     const byCat = {};
     BANK.filter(okLen).forEach(e => (byCat[e.cat] ||= []).push(e));
     let cats = Object.keys(byCat).filter(c => byCat[c].length >= lvl.odd - 1);
-    if (!cats.length) { BANK.forEach(e => (byCat[e.cat] ||= []).push(e)); cats = Object.keys(CATS); }
+    if (!cats.length) { // not enough long words: fall back to any unused word
+      for (const k in byCat) delete byCat[k];
+      BANK.filter(e => !used.has(e.id)).forEach(e => (byCat[e.cat] ||= []).push(e));
+      cats = Object.keys(byCat).filter(c => byCat[c].length >= lvl.odd - 1);
+    }
     const c = pick(cats);
     const group = shuffle(byCat[c]).slice(0, lvl.odd - 1);
-    const odd = pick(BANK.filter(e => e.cat !== c && okLen(e)));
+    const oddPool = BANK.filter(e => e.cat !== c && okLen(e));
+    const odd = pick(oddPool.length ? oddPool : BANK.filter(e => e.cat !== c && !used.has(e.id)));
     const options = shuffle([...group, odd].map(e => e[lang]));
     return { type: 'odd', lang, entry: odd, cat: c, answer: odd[lang], options };
   },
   clue(lang, lvl, used) {
     const e = pick(poolFor(lang, lvl, used));
-    const options = shuffle([e, ...distractors(e, lang, 3, lvl, lang)].map(x => x[lang]));
+    const options = shuffle([e, ...distractors(e, lang, (lvl.opts || 4) - 1, lvl, lang)].map(x => x[lang]));
     return { type: 'clue', lang, entry: e, answer: e[lang], options };
   },
   translate(lang, lvl, used) {
@@ -724,7 +734,7 @@ function renderMenu() {
     LEVELS.map((l, i) => h('button', {
       id: 'lvl-' + l.id, type: 'button', 'aria-pressed': String(l.id === lvl.id),
       onclick: () => { S.level = l.id; saveLevel(l.id); renderMenu(); },
-    }, h('span', { class: 'bars', 'aria-hidden': 'true' }, [0, 1, 2, 3].map(k => h('i', { class: k <= i ? 'on' : '' }))), l.name[L])));
+    }, h('span', { class: 'bars', 'aria-hidden': 'true' }, LEVELS.map((_, k) => h('i', { class: k <= i ? 'on' : '' }))), l.name[L])));
   const langSeg = h('div', { class: 'lvlseg', role: 'group', 'aria-label': t.langLbl },
     [['ms', 'BM', 'Bahasa Melayu'], ['en', 'EN', 'English']].map(([id, short, full]) => h('button', {
       id: 'lang-' + id, type: 'button', 'aria-pressed': String(S.lang === id), 'aria-label': full, title: full,
@@ -789,7 +799,7 @@ function renderQuestion() {
   const card = h('div', { class: 'card', id: 'card' },
     h('div', { class: 'qhead' }, h('span', { class: 'label' }, title), h('p', {}, instr)));
 
-  const clueBox = () => h('div', { class: 'clue' }, h('span', { class: 'label' }, `${t.clueLbl} · ${CATS[q.entry.cat][L]}`), L ? q.entry.cen : q.entry.cms);
+  const clueBox = () => h('div', { class: 'clue' }, h('span', { class: 'label' }, G.lvl.hideCat ? t.clueLbl : `${t.clueLbl} · ${CATS[q.entry.cat][L]}`), L ? q.entry.cen : q.entry.cms);
 
   if (q.type === 'scramble') {
     card.append(clueBox());
@@ -1160,7 +1170,7 @@ document.addEventListener('keydown', e => {
     } else if (e.key === 'Backspace' && G.picks.length > G.locked) {
       G.picks.pop(); Sound.play('undo'); drawScramble();
     }
-  } else if (/^[1-5]$/.test(e.key)) {
+  } else if (/^[1-6]$/.test(e.key)) {
     const b = document.querySelectorAll('#opts .opt')[+e.key - 1];
     if (b && !b.disabled) b.click();
   }

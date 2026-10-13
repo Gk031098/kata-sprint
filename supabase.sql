@@ -2,8 +2,8 @@
 create table public.scores (
   id         bigint generated always as identity primary key,
   name       text not null check (char_length(trim(name)) between 1 and 20),
-  score      integer not null check (score between 1 and 12000),
-  level      text not null check (level in ('easy', 'medium', 'hard', 'super')),
+  score      integer not null check (score between 1 and 30000),
+  level      text not null check (level in ('easy', 'medium', 'hard', 'super', 'ultra')),
   lang       text not null check (lang in ('ms', 'en', 'mix')),
   correct    integer not null check (correct between 0 and 12),
   created_at timestamptz not null default now()
