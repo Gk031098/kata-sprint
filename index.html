@@ -173,6 +173,17 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 .review .w small { font-weight: 500; color: var(--muted); display: block; }
 .review .tr { color: var(--muted); font-size: 14px; text-align: right; }
 
+.lbform { display: flex; flex-wrap: wrap; gap: 8px; }
+.lbform input { flex: 1 1 180px; min-width: 0; font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.lbmsg { font-size: 14px; color: var(--muted); margin: 0; }
+.lbmsg.err { color: var(--bad); }
+.board { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.board li { display: grid; grid-template-columns: 32px minmax(0,1fr) auto; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
+.board li.me { border-color: var(--kunyit); background: var(--kunyit-soft); }
+.board .rk { font-weight: 800; color: var(--muted); }
+.board .nm { overflow-wrap: anywhere; font-weight: 600; }
+.board .sc { font-family: var(--font-display); font-weight: 800; }
+
 @media (max-width: 480px) {
   .levels { grid-template-columns: 1fr; }
   .rack .tile { width: 42px; height: 48px; font-size: 22px; }
@@ -192,7 +203,14 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
   <section id="result" hidden></section>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
+// ---------- Supabase leaderboard (leave blank to play offline) ----------
+const SUPABASE_URL = 'https://mwojesxmkhcdsrjicnzt.supabase.co'; // Supabase project URL
+const SUPABASE_ANON_KEY = 'sb_publishable_8WDqfCirlhbU9d7QhgLQLA_-sqjG7lb'; // publishable key (safe to be public)
+const db = (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
 // ---------- Word bank: category | Bahasa Melayu | English | clue (BM) | clue (EN) ----------
 const BANK = `
 an|KUCING|CAT|Haiwan peliharaan yang mengiau|A pet that meows
@@ -367,6 +385,8 @@ const T = {
       translate: ['Terjemah', 'Pilih terjemahan yang betul.'],
     },
     clueLbl: 'Petunjuk', catLbl: 'Kategori',
+    lb: 'Papan pendahulu', yourName: 'Nama anda', submit: 'Hantar skor', sending: 'Menghantar…', sent: 'Skor dihantar!',
+    lbEmpty: 'Belum ada skor. Jadilah yang pertama!', lbError: 'Tidak dapat menyambung ke papan pendahulu.', nameNeeded: 'Tulis nama dahulu (1–20 aksara).', you: 'anda',
   },
   en: {
     tagline: 'A fast brain puzzle. Unscramble letters, spot the odd one out and beat the clock.',
@@ -385,6 +405,8 @@ const T = {
       translate: ['Translate', 'Pick the correct translation.'],
     },
     clueLbl: 'Clue', catLbl: 'Category',
+    lb: 'Leaderboard', yourName: 'Your name', submit: 'Submit score', sending: 'Sending…', sent: 'Score submitted!',
+    lbEmpty: 'No scores yet. Be the first!', lbError: 'Could not reach the leaderboard.', nameNeeded: 'Enter a name first (1–20 characters).', you: 'you',
   },
 };
 
@@ -793,6 +815,7 @@ function renderResult() {
     h('div', { class: 'actions' },
       h('button', { class: 'btn', id: 'menu-btn', onclick: () => { show('menu'); renderMenu(); } }, t.menuBtn),
       h('button', { class: 'btn primary', id: 'again-btn', onclick: () => startGame(G.lvl) }, t.againBtn)),
+    db ? leaderboardSection(key) : null,
     h('div', { class: 'section' },
       h('span', { class: 'label' }, t.review),
       h('ul', { class: 'review' }, G.log.map(({ q, ok }) => {
@@ -804,6 +827,46 @@ function renderResult() {
       }))),
   );
   show('result');
+}
+
+// ---------- online leaderboard ----------
+function loadName() { try { return localStorage.getItem('kataSprint.name') || ''; } catch { return ''; } }
+function saveName(n) { try { localStorage.setItem('kataSprint.name', n); } catch {} }
+
+function leaderboardSection(key) {
+  const t = ui();
+  const level = G.lvl.id, lang = S.lang, score = G.score, correct = G.correct;
+  const msg = h('p', { class: 'lbmsg', role: 'status' }, '');
+  const list = h('ol', { class: 'board' });
+  const input = h('input', { id: 'lb-name', maxlength: '20', placeholder: t.yourName, 'aria-label': t.yourName, value: loadName() });
+  const btn = h('button', { class: 'btn primary', id: 'lb-submit', type: 'submit' }, t.submit);
+  const form = h('form', { class: 'lbform', onsubmit: async e => {
+    e.preventDefault();
+    const name = input.value.trim();
+    if (!name || name.length > 20) { msg.className = 'lbmsg err'; msg.textContent = t.nameNeeded; return; }
+    btn.disabled = true; btn.textContent = t.sending;
+    const { data, error } = await db.from('scores').insert({ name, score, level, lang, correct }).select('id').single();
+    if (error) { btn.disabled = false; btn.textContent = t.submit; msg.className = 'lbmsg err'; msg.textContent = t.lbError; return; }
+    saveName(name);
+    form.hidden = true; msg.className = 'lbmsg'; msg.textContent = t.sent;
+    loadBoard(data.id);
+  } }, input, btn);
+  if (score <= 0) form.hidden = true;
+
+  async function loadBoard(myId) {
+    const { data, error } = await db.from('scores').select('id,name,score')
+      .eq('level', level).eq('lang', lang).order('score', { ascending: false }).order('created_at').limit(10);
+    if (error) { msg.className = 'lbmsg err'; msg.textContent = t.lbError; return; }
+    if (!data.length) { list.replaceChildren(h('li', {}, h('span', {}), h('span', { class: 'nm' }, t.lbEmpty), h('span', {}))); return; }
+    list.replaceChildren(...data.map((r, i) => h('li', { class: r.id === myId ? 'me' : '' },
+      h('span', { class: 'rk num' }, i + 1),
+      h('span', { class: 'nm' }, r.name, r.id === myId ? ` (${t.you})` : ''),
+      h('span', { class: 'sc num' }, r.score))));
+  }
+  loadBoard(null);
+  const langName = { ms: 'BM', en: 'EN', mix: 'BM + EN' }[lang];
+  return h('div', { class: 'section' },
+    h('span', { class: 'label' }, `${t.lb} · ${G.lvl.name[uiL()]} · ${langName}`), form, msg, list);
 }
 
 // ---------- keyboard ----------
