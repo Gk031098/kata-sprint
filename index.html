@@ -173,16 +173,46 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 .review .w small { font-weight: 500; color: var(--muted); display: block; }
 .review .tr { color: var(--muted); font-size: 14px; text-align: right; }
 
-.lbform { display: flex; flex-wrap: wrap; gap: 8px; }
-.lbform input { flex: 1 1 180px; min-width: 0; font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
-.lbmsg { font-size: 14px; color: var(--muted); margin: 0; }
-.lbmsg.err { color: var(--bad); }
-.board { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-.board li { display: grid; grid-template-columns: 32px minmax(0,1fr) auto; gap: 10px; padding: 8px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); }
-.board li.me { border-color: var(--kunyit); background: var(--kunyit-soft); }
-.board .rk { font-weight: 800; color: var(--muted); }
-.board .nm { overflow-wrap: anywhere; font-weight: 600; }
-.board .sc { font-family: var(--font-display); font-weight: 800; }
+/* scoreboard */
+.sb-card { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
+.sb-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.sb-head h2 { font-size: 28px; }
+.sb-sub { margin: 4px 0 0; color: var(--muted); }
+.sb-sub select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 2px 6px; }
+.sb-tabs { flex: 0 1 280px; }
+.sb-name { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; background: var(--bg); border-radius: 14px; padding: 12px 14px; }
+.sb-name label { font-weight: 700; }
+.sb-name input { flex: 1 1 160px; min-width: 0; font: inherit; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.sb-msg { margin: 0; font-size: 14px; font-weight: 600; color: var(--pandan); }
+.sb-msg.err { color: var(--bad); }
+.sb-msg:empty { display: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn { border: 1.5px solid var(--line); background: transparent; border-radius: 999px; padding: 6px 14px; font-weight: 700; color: var(--muted); }
+.chip-btn[aria-pressed="true"] { border-color: var(--pandan); color: var(--pandan); }
+.sb-wrap { overflow-x: auto; }
+.sb { width: 100%; border-collapse: collapse; }
+.sb th { text-align: left; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+.sb td { padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.sb .r { text-align: right; font-variant-numeric: tabular-nums; }
+.sb .rk { width: 36px; font-family: var(--font-display); font-weight: 800; color: var(--muted); }
+.sb tr.top3 .rk { color: var(--pandan); }
+.sb .pl { font-weight: 600; overflow-wrap: anywhere; }
+.sb .tt { font-weight: 700; font-size: 14px; color: var(--muted); }
+.sb .mt { display: none; }
+.sb .best { font-family: var(--font-display); font-weight: 800; font-size: 18px; }
+.sb .when { color: var(--muted); font-size: 14px; white-space: nowrap; }
+.sb tr.me td { background: var(--kunyit-soft); }
+.sb-empty, .sb-note { margin: 0; color: var(--muted); font-size: 14px; }
+.credit { margin-top: 28px; display: grid; gap: 14px; text-align: center; color: var(--muted); }
+.credit p { margin: 0; }
+.credit .by { display: flex; align-items: center; gap: 14px; }
+.credit .by::before, .credit .by::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.credit b { color: var(--ink); font-family: var(--font-display); }
+@media (max-width: 560px) {
+  .sb .tt { display: none; }
+  .sb .mt { display: block; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .sb-card { padding: 16px 14px; }
+}
 
 @media (max-width: 480px) {
   .levels { grid-template-columns: 1fr; }
@@ -370,7 +400,7 @@ const ROUND = 12;
 const T = {
   ms: {
     tagline: 'Teka-teki otak yang pantas. Susun huruf, cari yang ganjil dan lawan masa sebelum jam tamat.',
-    lang: 'Bahasa perkataan', uiLang: 'Bahasa arahan', level: 'Pilih tahap', perQ: 'Masa', hints: 'Bantuan', lives: 'Nyawa', letters: 'Huruf',
+    lang: 'Bahasa permainan', level: 'Pilih tahap', perQ: 'Masa', hints: 'Bantuan', lives: 'Nyawa', letters: 'Huruf',
     best: 'Rekod terbaik', none: 'belum ada', sec: 's', how: 'Jenis teka-teki',
     q: 'Soalan', score: 'Skor', streak: 'Kombo', hint: 'Bantuan', quit: 'Keluar', sure: 'Pasti keluar?', clear: 'Padam',
     correct: 'Betul!', wrong: 'Salah', timeout: 'Masa tamat', next: 'Ketik untuk teruskan',
@@ -385,12 +415,19 @@ const T = {
       translate: ['Terjemah', 'Pilih terjemahan yang betul.'],
     },
     clueLbl: 'Petunjuk', catLbl: 'Kategori',
-    lb: 'Papan pendahulu', yourName: 'Nama anda', submit: 'Hantar skor', sending: 'Menghantar…', sent: 'Skor dihantar!',
-    lbEmpty: 'Belum ada skor. Jadilah yang pertama!', lbError: 'Tidak dapat menyambung ke papan pendahulu.', nameNeeded: 'Tulis nama dahulu (1–20 aksara).', you: 'anda',
+    board: 'Papan Skor', boardSub: 'Skor terbaik setiap pemain', recentSub: 'Permainan paling baharu',
+    top: 'Pemain terbaik', recent: 'Permainan terkini', yourName: 'Nama anda', save: 'Simpan',
+    saved: 'Nama disimpan.', sent: 'Skor anda telah disimpan di papan skor.', everyone: 'Semua', onlyMe: 'Saya sahaja',
+    colPlayer: 'Pemain', colTitle: 'Gelaran', colGames: 'Main', colBest: 'Terbaik', colScore: 'Skor', colWhen: 'Bila',
+    loading: 'Memuatkan…', lbEmpty: 'Belum ada skor. Jadilah yang pertama!', lbError: 'Tidak dapat menyambung ke papan skor. Cuba lagi sebentar.',
+    nameNeeded: 'Tulis nama anda dahulu (1–20 aksara).', you: 'anda',
+    boardNote: 'Permainan anda disimpan di papan skor bersama. Guna nama yang sama di mana-mana peranti untuk menyatukan sejarah anda.',
+    noName: 'Tulis nama anda dan tekan Simpan supaya skor anda masuk ke papan skor.',
+    tip: 'Petua: main semula tahap yang sama untuk memecahkan rekod anda sendiri.', credit: 'Dicipta dan dibangunkan oleh',
   },
   en: {
     tagline: 'A fast brain puzzle. Unscramble letters, spot the odd one out and beat the clock.',
-    lang: 'Word language', uiLang: 'Instruction language', level: 'Choose a level', perQ: 'Time', hints: 'Hints', lives: 'Lives', letters: 'Letters',
+    lang: 'Game language', level: 'Choose a level', perQ: 'Time', hints: 'Hints', lives: 'Lives', letters: 'Letters',
     best: 'Best score', none: 'none yet', sec: 's', how: 'Puzzle types',
     q: 'Question', score: 'Score', streak: 'Combo', hint: 'Hint', quit: 'Quit', sure: 'Really quit?', clear: 'Clear',
     correct: 'Correct!', wrong: 'Wrong', timeout: "Time's up", next: 'Tap to continue',
@@ -405,8 +442,15 @@ const T = {
       translate: ['Translate', 'Pick the correct translation.'],
     },
     clueLbl: 'Clue', catLbl: 'Category',
-    lb: 'Leaderboard', yourName: 'Your name', submit: 'Submit score', sending: 'Sending…', sent: 'Score submitted!',
-    lbEmpty: 'No scores yet. Be the first!', lbError: 'Could not reach the leaderboard.', nameNeeded: 'Enter a name first (1–20 characters).', you: 'you',
+    board: 'Scoreboard', boardSub: 'Best score per player', recentSub: 'Latest games played',
+    top: 'Top players', recent: 'Recent games', yourName: 'Your name', save: 'Save',
+    saved: 'Name saved.', sent: 'Your score is saved to the scoreboard.', everyone: 'Everyone', onlyMe: 'Only me',
+    colPlayer: 'Player', colTitle: 'Level reached', colGames: 'Games', colBest: 'Best', colScore: 'Score', colWhen: 'When',
+    loading: 'Loading…', lbEmpty: 'No scores yet. Be the first!', lbError: 'Could not reach the scoreboard. Try again in a moment.',
+    nameNeeded: 'Enter your name first (1–20 characters).', you: 'you',
+    boardNote: 'Your games are saved to the shared board. Use the same name on any device to keep your history together.',
+    noName: 'Enter your name and press Save so your scores go on the board.',
+    tip: 'Tip: replay the same level to beat your own best score.', credit: 'Created and developed by',
   },
 };
 
@@ -435,13 +479,11 @@ function loadBest() { try { return JSON.parse(localStorage.getItem('kataSprint.b
 function saveBest(b) { try { localStorage.setItem('kataSprint.best', JSON.stringify(b)); } catch {} }
 function loadLang() { try { return localStorage.getItem('kataSprint.lang') || 'ms'; } catch { return 'ms'; } }
 function saveLang(l) { try { localStorage.setItem('kataSprint.lang', l); } catch {} }
-function loadUi() { try { return localStorage.getItem('kataSprint.ui') || 'ms'; } catch { return 'ms'; } }
-function saveUi(l) { try { localStorage.setItem('kataSprint.ui', l); } catch {} }
 
 // ---------- state ----------
-const S = { lang: loadLang(), ui: loadUi(), best: loadBest() };
-const ui = () => T[S.ui];
-const uiL = () => S.ui === 'en' ? 1 : 0;
+const S = { lang: loadLang() === 'en' ? 'en' : 'ms', best: loadBest(), boardLevel: 'easy' };
+const ui = () => T[S.lang];
+const uiL = () => S.lang === 'en' ? 1 : 0;
 
 // ---------- question generation ----------
 function poolFor(lang, lvl, used, extra = () => true) {
@@ -517,7 +559,6 @@ const GEN = {
 
 function makeRound(lvl) {
   const types = ['scramble', 'missing', 'odd', 'clue'];
-  if (S.lang === 'mix') types.push('translate');
   const seq = [];
   while (seq.length < ROUND) {
     const block = shuffle(types);
@@ -526,7 +567,7 @@ function makeRound(lvl) {
   }
   const used = new Set();
   return seq.slice(0, ROUND).map(type => {
-    const lang = S.lang === 'mix' ? pick(['ms', 'en']) : S.lang;
+    const lang = S.lang;
     const q = GEN[type](lang, lvl, used);
     used.add(q.entry.id);
     return q;
@@ -542,8 +583,8 @@ function renderMenu() {
     h('span', { class: 'gap' }),
     [...'SPRINT'].map((c, i) => h('span', { class: 'tile' + (i === 0 ? ' accent' : ''), style: `animation-delay:${(i + 4) * 60}ms`, 'aria-hidden': 'true' }, c)),
   );
-  const langs = [['ms', 'Bahasa Melayu', 'BM'], ['en', 'English', 'EN'], ['mix', 'Campur', 'BM + EN']];
-  const seg = h('div', { class: 'seg', role: 'group', 'aria-label': t.lang },
+  const langs = [['ms', 'Bahasa Melayu', 'Seluruh permainan dalam BM'], ['en', 'English', 'The whole game in English']];
+  const seg = h('div', { class: 'seg two', role: 'group', 'aria-label': t.lang },
     langs.map(([id, name, sub]) => h('button', {
       id: 'lang-' + id, 'aria-pressed': String(S.lang === id),
       onclick: () => { S.lang = id; saveLang(id); renderMenu(); },
@@ -561,19 +602,17 @@ function renderMenu() {
         h('dt', {}, t.hints), h('dd', { class: 'num' }, lvl.hints)),
       h('div', { class: 'best' }, `${t.best}: `, best ? h('b', { class: 'num' }, best) : t.none));
   });
-  const types = S.lang === 'mix' ? Object.keys(t.types) : Object.keys(t.types).filter(k => k !== 'translate');
+  const types = Object.keys(t.types).filter(k => k !== 'translate');
   $('#menu').replaceChildren(
     h('div', { class: 'hero' }, logo, h('p', { class: 'tagline' }, t.tagline)),
     h('div', { class: 'section' }, h('span', { class: 'label' }, t.lang), seg),
-    h('div', { class: 'section' }, h('span', { class: 'label' }, t.uiLang),
-      h('div', { class: 'seg two', role: 'group', 'aria-label': t.uiLang },
-        [['ms', 'Bahasa Melayu', 'Arahan dalam BM'], ['en', 'English', 'Instructions in English']].map(([id, name, sub]) =>
-          h('button', { id: 'ui-' + id, 'aria-pressed': String(S.ui === id), onclick: () => { S.ui = id; saveUi(id); renderMenu(); } },
-            name, h('small', {}, sub))))),
     h('div', { class: 'section' }, h('span', { class: 'label' }, t.level), h('div', { class: 'levels' }, cards)),
     h('div', { class: 'section' }, h('span', { class: 'label' }, t.how),
       h('div', { class: 'how' }, types.map(k => h('div', {}, h('b', {}, t.types[k][0]), h('span', {}, t.types[k][1]))))),
+    db ? scoreboard({ level: S.boardLevel }) : null,
+    footer(),
   );
+  document.documentElement.lang = S.lang;
 }
 
 // ---------- game ----------
@@ -608,9 +647,8 @@ function renderQuestion() {
   const timerRow = h('div', { class: 'timer-row' }, h('span', { id: 'timer-txt', class: 'num' }, ''), h('span', { id: 'penalty' }, ''));
 
   const [title, instr] = t.types[q.type];
-  const langTag = S.lang === 'mix' ? (q.type === 'translate' ? ` · ${q.lang.toUpperCase()} → ${q.to.toUpperCase()}` : ` · ${q.lang.toUpperCase()}`) : '';
   const card = h('div', { class: 'card', id: 'card' },
-    h('div', { class: 'qhead' }, h('span', { class: 'label' }, title + langTag), h('p', {}, instr)));
+    h('div', { class: 'qhead' }, h('span', { class: 'label' }, title), h('p', {}, instr)));
 
   const clueBox = () => h('div', { class: 'clue' }, h('span', { class: 'label' }, `${t.clueLbl} · ${CATS[q.entry.cat][L]}`), L ? q.entry.cen : q.entry.cms);
 
@@ -815,7 +853,7 @@ function renderResult() {
     h('div', { class: 'actions' },
       h('button', { class: 'btn', id: 'menu-btn', onclick: () => { show('menu'); renderMenu(); } }, t.menuBtn),
       h('button', { class: 'btn primary', id: 'again-btn', onclick: () => startGame(G.lvl) }, t.againBtn)),
-    db ? leaderboardSection(key) : null,
+    db ? scoreboard({ level: G.lvl.id, pending: G.score > 0 ? { score: G.score, correct: G.correct, level: G.lvl.id, lang: S.lang } : null }) : null,
     h('div', { class: 'section' },
       h('span', { class: 'label' }, t.review),
       h('ul', { class: 'review' }, G.log.map(({ q, ok }) => {
@@ -825,48 +863,135 @@ function renderResult() {
           h('span', { class: 'w' }, q.entry[q.lang], h('small', {}, `${t.types[q.type][0]} · ${CATS[q.entry.cat][L]}`)),
           h('span', { class: 'tr' }, q.entry[o]));
       }))),
+    footer(),
   );
   show('result');
 }
 
-// ---------- online leaderboard ----------
+// ---------- shared scoreboard ----------
 function loadName() { try { return localStorage.getItem('kataSprint.name') || ''; } catch { return ''; } }
 function saveName(n) { try { localStorage.setItem('kataSprint.name', n); } catch {} }
 
-function leaderboardSection(key) {
-  const t = ui();
-  const level = G.lvl.id, lang = S.lang, score = G.score, correct = G.correct;
-  const msg = h('p', { class: 'lbmsg', role: 'status' }, '');
-  const list = h('ol', { class: 'board' });
-  const input = h('input', { id: 'lb-name', maxlength: '20', placeholder: t.yourName, 'aria-label': t.yourName, value: loadName() });
-  const btn = h('button', { class: 'btn primary', id: 'lb-submit', type: 'submit' }, t.submit);
-  const form = h('form', { class: 'lbform', onsubmit: async e => {
+// title earned from the number of correct answers in a player's best game
+const RANKS = [
+  [12, ['Genius', 'Genius']],
+  [10, ['Cemerlang', 'Brilliant']],
+  [8, ['Pemikir pantas', 'Quick thinker']],
+  [5, ['Bintang baru', 'Rising star']],
+  [0, ['Pemula', 'Beginner']],
+];
+const rankTitle = correct => RANKS.find(([min]) => correct >= min)[1][uiL()];
+
+function timeAgo(iso) {
+  const sec = (new Date(iso) - Date.now()) / 1000;
+  const rtf = new Intl.RelativeTimeFormat(S.lang, { numeric: 'auto' });
+  for (const [unit, size] of [['day', 86400], ['hour', 3600], ['minute', 60]]) {
+    if (Math.abs(sec) >= size) return rtf.format(Math.round(sec / size), unit);
+  }
+  return rtf.format(Math.round(sec), 'second');
+}
+
+function scoreboard({ level, pending = null }) {
+  const t = ui(), L = uiL();
+  const st = { tab: 'top', who: 'all', level, rows: null, error: false, myId: null, req: 0 };
+  const box = h('section', { class: 'sb-card', 'aria-label': t.board });
+  const msg = h('p', { class: 'sb-msg', role: 'status' });
+  const setMsg = (text, err = false) => { msg.textContent = text; msg.classList.toggle('err', err); };
+
+  const input = h('input', { id: 'sb-name', maxlength: '20', placeholder: t.yourName, autocomplete: 'nickname', value: loadName() });
+  const nameForm = h('form', { class: 'sb-name', onsubmit: async e => {
     e.preventDefault();
     const name = input.value.trim();
-    if (!name || name.length > 20) { msg.className = 'lbmsg err'; msg.textContent = t.nameNeeded; return; }
-    btn.disabled = true; btn.textContent = t.sending;
-    const { data, error } = await db.from('scores').insert({ name, score, level, lang, correct }).select('id').single();
-    if (error) { btn.disabled = false; btn.textContent = t.submit; msg.className = 'lbmsg err'; msg.textContent = t.lbError; return; }
-    saveName(name);
-    form.hidden = true; msg.className = 'lbmsg'; msg.textContent = t.sent;
-    loadBoard(data.id);
-  } }, input, btn);
-  if (score <= 0) form.hidden = true;
+    if (!name) return setMsg(t.nameNeeded, true);
+    saveName(name); input.value = name;
+    setMsg(t.saved);
+    if (await submitPending()) return load();
+    draw();
+  } }, h('label', { for: 'sb-name' }, t.yourName), input, h('button', { class: 'btn primary', type: 'submit' }, t.save));
 
-  async function loadBoard(myId) {
-    const { data, error } = await db.from('scores').select('id,name,score')
-      .eq('level', level).eq('lang', lang).order('score', { ascending: false }).order('created_at').limit(10);
-    if (error) { msg.className = 'lbmsg err'; msg.textContent = t.lbError; return; }
-    if (!data.length) { list.replaceChildren(h('li', {}, h('span', {}), h('span', { class: 'nm' }, t.lbEmpty), h('span', {}))); return; }
-    list.replaceChildren(...data.map((r, i) => h('li', { class: r.id === myId ? 'me' : '' },
-      h('span', { class: 'rk num' }, i + 1),
-      h('span', { class: 'nm' }, r.name, r.id === myId ? ` (${t.you})` : ''),
-      h('span', { class: 'sc num' }, r.score))));
+  // save the game that just ended, once, as soon as the player has a name
+  async function submitPending() {
+    const name = loadName();
+    if (!pending || pending.done || !name) return false;
+    pending.done = true;
+    const { data, error } = await db.from('scores')
+      .insert({ name, score: pending.score, correct: pending.correct, level: pending.level, lang: pending.lang })
+      .select('id').single();
+    if (error) { pending.done = false; setMsg(t.lbError, true); return false; }
+    st.myId = data.id;
+    setMsg(t.sent);
+    return true;
   }
-  loadBoard(null);
-  const langName = { ms: 'BM', en: 'EN', mix: 'BM + EN' }[lang];
-  return h('div', { class: 'section' },
-    h('span', { class: 'label' }, `${t.lb} · ${G.lvl.name[uiL()]} · ${langName}`), form, msg, list);
+
+  async function load() {
+    const req = ++st.req;
+    st.rows = null; draw();
+    const { data, error } = await db.from('scores').select('id,name,score,correct,created_at')
+      .eq('level', st.level).eq('lang', S.lang).order('created_at', { ascending: false }).limit(1000);
+    if (req !== st.req) return;
+    st.error = !!error; st.rows = data || []; draw();
+  }
+
+  function table(heads, rows) {
+    return h('div', { class: 'sb-wrap' }, h('table', { class: 'sb' },
+      h('thead', {}, h('tr', {}, heads.map(([label, cls]) => h('th', { class: cls || '' }, label)))),
+      h('tbody', {}, rows)));
+  }
+
+  function draw() {
+    const me = loadName().trim().toLowerCase();
+    const levelSelect = h('select', { id: 'sb-level', 'aria-label': t.level, onchange: e => { st.level = S.boardLevel = e.target.value; load(); } },
+      LEVELS.map(l => h('option', { value: l.id, selected: l.id === st.level ? 'selected' : false }, l.name[L])));
+    const head = h('div', { class: 'sb-head' },
+      h('div', {}, h('h2', {}, t.board), h('p', { class: 'sb-sub' }, `${st.tab === 'top' ? t.boardSub : t.recentSub} · `, levelSelect)),
+      h('div', { class: 'seg two sb-tabs', role: 'group' }, [['top', t.top], ['recent', t.recent]].map(([id, label]) =>
+        h('button', { 'aria-pressed': String(st.tab === id), onclick: () => { st.tab = id; draw(); } }, label))));
+    const chips = h('div', { class: 'chips', role: 'group' }, [['all', t.everyone], ['me', t.onlyMe]].map(([id, label]) =>
+      h('button', { class: 'chip-btn', 'aria-pressed': String(st.who === id), onclick: () => { st.who = id; draw(); } }, label)));
+
+    let body;
+    if (st.rows === null) body = h('p', { class: 'sb-empty' }, t.loading);
+    else if (st.error) body = h('p', { class: 'sb-empty' }, t.lbError);
+    else {
+      const rows = st.who === 'me' ? st.rows.filter(r => r.name.trim().toLowerCase() === me) : st.rows;
+      if (!rows.length) body = h('p', { class: 'sb-empty' }, t.lbEmpty);
+      else if (st.tab === 'top') {
+        const players = new Map(); // rows are newest first, so the first name seen is the latest spelling
+        for (const r of rows) {
+          const k = r.name.trim().toLowerCase(), p = players.get(k);
+          if (!p) players.set(k, { key: k, name: r.name, best: r, games: 1 });
+          else { p.games++; if (r.score > p.best.score) p.best = r; }
+        }
+        const list = [...players.values()].sort((a, b) => b.best.score - a.best.score).slice(0, 20);
+        body = table([['#'], [t.colPlayer], [t.colTitle, 'tt'], [t.colGames, 'r'], [t.colBest, 'r']],
+          list.map((p, i) => h('tr', { class: [i < 3 ? 'top3' : '', p.key === me ? 'me' : ''].join(' ') },
+            h('td', { class: 'rk' }, i + 1),
+            h('td', { class: 'pl' }, p.name, p.key === me ? ` (${t.you})` : '', h('small', { class: 'mt' }, rankTitle(p.best.correct))),
+            h('td', { class: 'tt' }, rankTitle(p.best.correct)),
+            h('td', { class: 'r' }, p.games),
+            h('td', { class: 'r best' }, p.best.score))));
+      } else {
+        body = table([[t.colPlayer], [t.colTitle, 'tt'], [t.colScore, 'r'], [t.colWhen, 'r']],
+          rows.slice(0, 20).map(r => h('tr', { class: r.id === st.myId ? 'me' : '' },
+            h('td', { class: 'pl' }, r.name, h('small', { class: 'mt' }, rankTitle(r.correct))),
+            h('td', { class: 'tt' }, rankTitle(r.correct)),
+            h('td', { class: 'r best' }, r.score),
+            h('td', { class: 'r when' }, timeAgo(r.created_at)))));
+      }
+    }
+    box.replaceChildren(head, nameForm, msg, chips, body, h('p', { class: 'sb-note' }, me ? t.boardNote : t.noName));
+  }
+
+  draw();
+  if (pending && loadName()) submitPending().then(load); else load();
+  return box;
+}
+
+function footer() {
+  const t = ui();
+  return h('footer', { class: 'credit' },
+    h('p', {}, t.tip),
+    h('p', { class: 'by' }, h('span', {}, `${t.credit} `, h('b', {}, 'Auji Kamaruddin'))));
 }
 
 // ---------- keyboard ----------
