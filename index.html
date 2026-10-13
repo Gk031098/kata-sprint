@@ -14,6 +14,7 @@
   --tile: #FFF6DF; --tile-ink: #2B2416; --tile-edge: #CDB783;
   --pandan: #23704F; --pandan-ink: #FFFFFF; --kunyit: #B97C0C; --kunyit-soft: #F5E2B3;
   --bad: #B23E2D; --bad-soft: #F6D9D3; --good-soft: #D3EBDD;
+  --banner-bg: #1E3A2F; --banner-ink: #F1F5EE;
   --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
 }
@@ -23,6 +24,7 @@
     --tile: #F1E5C4; --tile-ink: #2B2416; --tile-edge: #9C8247;
     --pandan: #47B385; --pandan-ink: #0B1712; --kunyit: #E8B23C; --kunyit-soft: #3B3015;
     --bad: #E8735F; --bad-soft: #3D1F1A; --good-soft: #17382A;
+    --banner-bg: #E4ECE5; --banner-ink: #13201B;
     color-scheme: dark;
   }
 }
@@ -31,12 +33,14 @@
   --tile: #F1E5C4; --tile-ink: #2B2416; --tile-edge: #9C8247;
   --pandan: #47B385; --pandan-ink: #0B1712; --kunyit: #E8B23C; --kunyit-soft: #3B3015;
   --bad: #E8735F; --bad-soft: #3D1F1A; --good-soft: #17382A;
+  --banner-bg: #E4ECE5; --banner-ink: #13201B;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
 body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5; }
-.wrap { max-width: 720px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; }
+#game, #result { max-width: 720px; margin-inline: auto; }
+.wrap { max-width: 1000px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 48px; }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, .lvl:focus-visible { outline: 3px solid var(--kunyit); outline-offset: 2px; }
 h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.1; }
@@ -52,43 +56,45 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 .tile sub { position: absolute; right: 5px; bottom: 2px; font-size: 9px; font-weight: 600; opacity: .55; }
 
 /* menu */
-.hero { display: grid; gap: 14px; padding-block: 12px 24px; }
-.logo { display: flex; flex-wrap: wrap; gap: 6px; }
-.logo .tile { width: 46px; height: 52px; font-size: 28px; animation: drop .5s cubic-bezier(.3,1.4,.5,1) backwards; }
-.logo .gap { width: 14px; }
-.logo .tile.accent { background: var(--kunyit); color: var(--tile-ink); box-shadow: 0 3px 0 var(--tile-edge); }
-@keyframes drop { from { transform: translateY(-18px) rotate(-6deg); opacity: .2; } }
-.tagline { font-size: 18px; color: var(--muted); max-width: 52ch; margin: 0; }
-
-.section { display: grid; gap: 10px; margin-top: 22px; }
-.seg { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 4px; gap: 4px; }
-.seg.two { grid-template-columns: repeat(2, 1fr); }
-.seg button { border: 0; background: transparent; padding: 10px 6px; border-radius: 9px; font-weight: 600; line-height: 1.2; }
-.seg button small { display: block; font-weight: 500; font-size: 12px; color: var(--muted); }
-.seg button[aria-pressed="true"] { background: var(--pandan); color: var(--pandan-ink); }
-.seg button[aria-pressed="true"] small { color: inherit; opacity: .8; }
-
-.levels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.lvl {
-  text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-  padding: 14px; display: grid; gap: 8px; transition: transform .12s, border-color .12s;
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: start; padding-block: 8px 22px; }
+.title { font-size: clamp(48px, 12vw, 84px); font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
+.title mark { background: linear-gradient(transparent 60%, var(--kunyit) 60%); color: inherit; padding-inline: 4px; }
+.lede { font-size: 18px; color: var(--muted); margin: 14px 0 0; max-width: 56ch; }
+.bestcard { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 16px 20px; display: grid; gap: 10px; min-width: 240px; }
+.bestcard .v { font-family: var(--font-display); font-weight: 800; font-size: 40px; line-height: 1; }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--pandan); font-weight: 700; text-align: left; }
+.linkbtn:hover { text-decoration: underline; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.ctl { display: flex; align-items: center; gap: 10px; }
+.lvlseg { display: flex; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; }
+.lvlseg button { border: 0; background: transparent; padding: 9px 14px; border-radius: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+.lvlseg button:hover { color: var(--ink); }
+.lvlseg button[aria-pressed="true"] { background: var(--pandan); color: var(--pandan-ink); }
+.bars { display: inline-flex; gap: 2px; }
+.bars i { width: 5px; height: 14px; border-radius: 2px; background: currentColor; opacity: .3; }
+.bars i.on { opacity: 1; }
+.lvldesc { flex: 1 1 240px; min-width: 0; margin: 0; color: var(--muted); }
+.toggles { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { border: 1.5px solid var(--line); background: transparent; border-radius: 12px; padding: 8px 14px; font-weight: 700; white-space: nowrap; }
+.pill[aria-pressed="false"] { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.banner { margin-top: 22px; background: var(--banner-bg); color: var(--banner-ink); border-radius: 18px; padding: 22px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.banner > div { flex: 1 1 260px; min-width: 0; }
+.banner h2 { font-size: clamp(24px, 6vw, 30px); }
+.banner p { margin: 6px 0 0; opacity: .8; }
+.btn-cta { background: var(--kunyit); color: var(--tile-ink); border: 0; border-radius: 14px; padding: 14px 26px; font-family: var(--font-display); font-weight: 800; font-size: 18px; }
+.btn-cta:hover { filter: brightness(1.06); }
+.practice { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.pcard { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 4px; align-content: start; transition: transform .12s, border-color .12s; }
+.pcard:hover { transform: translateY(-2px); border-color: var(--pandan); }
+.pcard b { font-family: var(--font-display); font-size: 18px; }
+.pcard span { color: var(--muted); font-size: 14px; }
+.pcard small { color: var(--pandan); font-weight: 700; font-size: 12px; }
+.section { display: grid; gap: 10px; margin-top: 26px; }
+@media (max-width: 640px) {
+  .top { grid-template-columns: 1fr; }
+  .bestcard { min-width: 0; }
+  .btn-cta { width: 100%; }
 }
-.lvl:hover { transform: translateY(-2px); border-color: var(--pandan); }
-.lvl-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.lvl h3 { font-size: 22px; }
-.pips { display: flex; gap: 3px; }
-.pips i { width: 8px; height: 14px; border-radius: 2px; background: var(--line); }
-.pips i.on { background: var(--kunyit); }
-.lvl dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 0; font-size: 13px; }
-.lvl dt { color: var(--muted); }
-.lvl dd { margin: 0; font-weight: 600; }
-.lvl .best { font-size: 13px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 8px; }
-.lvl .best b { color: var(--ink); }
-
-.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
-.how div { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; font-size: 14px; }
-.how b { display: block; font-family: var(--font-display); font-size: 16px; }
-.how span { color: var(--muted); }
 
 /* game */
 .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
@@ -173,13 +179,9 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 .review .w small { font-weight: 500; color: var(--muted); display: block; }
 .review .tr { color: var(--muted); font-size: 14px; text-align: right; }
 
-/* sound toggle */
-.sound-btn { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 10; width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; box-shadow: 0 4px 14px rgb(0 0 0 / .18); }
-.sound-btn svg { width: 24px; height: 24px; }
-.sound-btn path { fill: var(--ink); }
-.sound-btn path.w { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
-.sound-btn[aria-pressed="false"] { opacity: .7; }
-.wrap { padding-bottom: 88px; }
+.seg { display: grid; grid-template-columns: repeat(2, 1fr); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 4px; gap: 4px; }
+.seg button { border: 0; background: transparent; padding: 10px 12px; border-radius: 9px; font-weight: 700; color: var(--muted); line-height: 1.2; }
+.seg button[aria-pressed="true"] { background: var(--pandan); color: var(--pandan-ink); }
 
 /* scoreboard */
 .sb-card { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; display: grid; gap: 14px; }
@@ -223,7 +225,6 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 }
 
 @media (max-width: 480px) {
-  .levels { grid-template-columns: 1fr; }
   .rack .tile { width: 42px; height: 48px; font-size: 22px; }
   .opt { font-size: 17px; padding: 12px 10px; }
   .card { padding: 16px 14px; }
@@ -235,7 +236,6 @@ h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; li
 </head>
 <body>
 
-<button id="sound-btn" class="sound-btn" type="button"></button>
 <div class="wrap" id="app">
   <section id="menu"></section>
   <section id="game" hidden></section>
@@ -404,11 +404,23 @@ const LEVELS = [
   { id: 'hard',   name: ['Sukar', 'Hard'],             time: 16, hints: 1, lives: 3, hide: 2, decoys: 1, odd: 5, mult: 2,   len: [7, 9],  sameCat: true },
   { id: 'super',  name: ['Super Sukar', 'Super Hard'], time: 12, hints: 0, lives: 2, hide: 3, decoys: 2, odd: 5, mult: 3,   len: [9, 99], sameCat: true },
 ];
-const ROUND = 12;
+const ROUND = 12, PRACTICE = 6;
 
 const T = {
   ms: {
-    tagline: 'Teka-teki otak yang pantas. Susun huruf, cari yang ganjil dan lawan masa sebelum jam tamat.',
+    tagline1: 'Empat teka-teki kata yang pantas untuk menajamkan otak anda.',
+    tagline2: 'Main satu sebagai latihan, atau ambil ujian penuh dalam beberapa minit.',
+    bestLbl: 'Skor otak terbaik', bestNone: 'Ambil ujian penuh untuk tahu', bestHave: 'Boleh anda pecahkan?',
+    levelLbl: 'Tahap', langLbl: 'Bahasa',
+    fullTitle: 'Ujian otak penuh', fullDesc: 'Keempat-empat teka-teki berturut-turut, 12 soalan, kemudian skor anda masuk papan skor.', fullBtn: 'Mula ujian penuh',
+    practice: 'Latih satu teka-teki', practiceMeta: '6 soalan · tidak masuk papan skor', practiceTag: 'Latihan',
+    musicOn: '♪ Muzik hidup', musicOff: '♪ Muzik mati',
+    lvlDesc: {
+      easy: '30 saat setiap soalan, perkataan 3–5 huruf, 3 nyawa, 3 bantuan. Pemanasan yang santai.',
+      medium: '22 saat, perkataan 5–7 huruf, 2 huruf hilang, 2 bantuan. Mula mencabar.',
+      hard: '16 saat, perkataan 7–9 huruf, huruf palsu dan pilihan mengelirukan, 1 bantuan.',
+      super: '12 saat, perkataan 9 huruf ke atas, 2 nyawa, tiada bantuan. Untuk juara sahaja.',
+    },
     lang: 'Bahasa permainan', level: 'Pilih tahap', perQ: 'Masa', hints: 'Bantuan', lives: 'Nyawa', letters: 'Huruf',
     best: 'Rekod terbaik', none: 'belum ada', sec: 's', how: 'Jenis teka-teki',
     q: 'Soalan', score: 'Skor', streak: 'Kombo', hint: 'Bantuan', quit: 'Keluar', sure: 'Pasti keluar?', clear: 'Padam',
@@ -432,11 +444,23 @@ const T = {
     nameNeeded: 'Tulis nama anda dahulu (1–20 aksara).', you: 'anda',
     boardNote: 'Permainan anda disimpan di papan skor bersama. Guna nama yang sama di mana-mana peranti untuk menyatukan sejarah anda.',
     noName: 'Tulis nama anda dan tekan Simpan supaya skor anda masuk ke papan skor.',
-    soundOn: 'Bunyi: hidup', soundOff: 'Bunyi: mati',
+    soundOn: 'Bunyi hidup', soundOff: 'Bunyi mati',
     tip: 'Petua: main semula tahap yang sama untuk memecahkan rekod anda sendiri.', credit: 'Dicipta dan dibangunkan oleh',
   },
   en: {
-    tagline: 'A fast brain puzzle. Unscramble letters, spot the odd one out and beat the clock.',
+    tagline1: 'Four quick word puzzles to sharpen your brain.',
+    tagline2: 'Play one for practice, or take the full check in a few minutes.',
+    bestLbl: 'Best brain score', bestNone: 'Take the full check to find out', bestHave: 'Can you beat it?',
+    levelLbl: 'Level', langLbl: 'Language',
+    fullTitle: 'Full brain check', fullDesc: 'All four puzzles in a row, 12 questions, then your score goes on the scoreboard.', fullBtn: 'Start full check',
+    practice: 'Practise one puzzle', practiceMeta: '6 questions · not on the scoreboard', practiceTag: 'Practice',
+    musicOn: '♪ Music on', musicOff: '♪ Music off',
+    lvlDesc: {
+      easy: '30 seconds per question, 3–5 letter words, 3 lives, 3 hints. A gentle warm-up.',
+      medium: '22 seconds, 5–7 letter words, 2 missing letters, 2 hints. Starts to bite.',
+      hard: '16 seconds, 7–9 letter words, decoy letters and tricky options, 1 hint.',
+      super: '12 seconds, words of 9+ letters, 2 lives, no hints. Champions only.',
+    },
     lang: 'Game language', level: 'Choose a level', perQ: 'Time', hints: 'Hints', lives: 'Lives', letters: 'Letters',
     best: 'Best score', none: 'none yet', sec: 's', how: 'Puzzle types',
     q: 'Question', score: 'Score', streak: 'Combo', hint: 'Hint', quit: 'Quit', sure: 'Really quit?', clear: 'Clear',
@@ -460,7 +484,7 @@ const T = {
     nameNeeded: 'Enter your name first (1–20 characters).', you: 'you',
     boardNote: 'Your games are saved to the shared board. Use the same name on any device to keep your history together.',
     noName: 'Enter your name and press Save so your scores go on the board.',
-    soundOn: 'Sound: on', soundOff: 'Sound: off',
+    soundOn: 'Sounds on', soundOff: 'Sounds off',
     tip: 'Tip: replay the same level to beat your own best score.', credit: 'Created and developed by',
   },
 };
@@ -491,24 +515,25 @@ function saveBest(b) { try { localStorage.setItem('kataSprint.best', JSON.string
 function loadLang() { try { return localStorage.getItem('kataSprint.lang') || 'ms'; } catch { return 'ms'; } }
 function saveLang(l) { try { localStorage.setItem('kataSprint.lang', l); } catch {} }
 
-// ---------- sound (made with Web Audio, no files needed) ----------
+// ---------- sound and music (made with Web Audio, no files needed) ----------
 const Sound = (() => {
-  let ctx = null;
-  let on = (() => { try { return localStorage.getItem('kataSprint.sound') !== 'off'; } catch { return true; } })();
+  const pref = (k) => { try { return localStorage.getItem(k) !== 'off'; } catch { return true; } };
+  const store = (k, v) => { try { localStorage.setItem(k, v ? 'on' : 'off'); } catch {} };
+  let ctx = null, on = pref('kataSprint.sound'), musicOn = pref('kataSprint.music');
   function audio() {
     if (!ctx) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; ctx = new C(); }
     if (ctx.state === 'suspended') ctx.resume();
     return ctx;
   }
-  function tone(freq, start, dur, type = 'sine', vol = 0.15) {
+  function tone(freq, start, dur, type = 'sine', vol = 0.15, dest = null) {
     const c = audio(); if (!c) return;
-    const t0 = c.currentTime + start;
+    const t0 = start > 1000 ? start : c.currentTime + start; // absolute time when scheduling music
     const osc = c.createOscillator(), gain = c.createGain();
     osc.type = type; osc.frequency.setValueAtTime(freq, t0);
     gain.gain.setValueAtTime(0.0001, t0);
     gain.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.connect(gain).connect(c.destination);
+    osc.connect(gain).connect(dest || c.destination);
     osc.start(t0); osc.stop(t0 + dur + 0.02);
   }
   const sounds = {
@@ -522,29 +547,69 @@ const Sound = (() => {
     win: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.11, 0.32, 'triangle', 0.16)),
     lose: () => [392, 330, 262].forEach((f, i) => tone(f, i * 0.16, 0.34, 'triangle', 0.14)),
   };
+
+  // background music: a soft C – Am – F – G arpeggio loop
+  const EIGHTH = 60 / 92 / 2;
+  const PROG = [
+    [65.41, [261.63, 329.63, 392.00, 523.25]],
+    [55.00, [220.00, 261.63, 329.63, 440.00]],
+    [43.65, [174.61, 220.00, 261.63, 349.23]],
+    [49.00, [196.00, 246.94, 293.66, 392.00]],
+  ];
+  const ARP = [0, 1, 2, 3, 2, 1, 2, 1];
+  let timer = null, bus = null, next = 0, step = 0;
+  function schedule() {
+    while (next < ctx.currentTime + 0.3) {
+      const [bass, chord] = PROG[Math.floor(step / 8) % 4], i = step % 8;
+      if (i === 0) tone(bass * 2, next, EIGHTH * 7.5, 'sine', 0.3, bus);
+      tone(chord[ARP[i]], next, EIGHTH * 1.8, 'triangle', 0.12, bus);
+      next += EIGHTH; step++;
+    }
+  }
+  function startMusic() {
+    if (timer || !musicOn || document.hidden) return;
+    const c = audio(); if (!c) return;
+    bus = c.createGain(); bus.gain.value = 0.3; bus.connect(c.destination);
+    next = c.currentTime + 0.1; step = 0;
+    schedule(); timer = setInterval(schedule, 100);
+  }
+  function stopMusic() {
+    clearInterval(timer); timer = null;
+    if (bus) { bus.gain.setTargetAtTime(0, ctx.currentTime, 0.08); const b = bus; setTimeout(() => b.disconnect(), 500); bus = null; }
+  }
+  // browsers only allow audio after the player interacts, so start music on the first tap
+  document.addEventListener('pointerdown', startMusic);
+  document.addEventListener('keydown', startMusic);
+  document.addEventListener('visibilitychange', () => document.hidden ? stopMusic() : (ctx && startMusic()));
+
   return {
     play(name) { if (on) try { sounds[name](); } catch {} },
     get on() { return on; },
-    toggle() {
-      on = !on;
-      try { localStorage.setItem('kataSprint.sound', on ? 'on' : 'off'); } catch {}
-      if (on) sounds.click();
-    },
+    get music() { return musicOn; },
+    toggle() { on = !on; store('kataSprint.sound', on); if (on) sounds.click(); },
+    toggleMusic() { musicOn = !musicOn; store('kataSprint.music', musicOn); musicOn ? startMusic() : stopMusic(); },
   };
 })();
 
-function updateSoundBtn() {
-  const b = $('#sound-btn'), t = ui();
-  b.setAttribute('aria-pressed', String(Sound.on));
-  b.setAttribute('aria-label', Sound.on ? t.soundOn : t.soundOff);
-  b.title = Sound.on ? t.soundOn : t.soundOff;
-  b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/>${Sound.on
-    ? '<path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>'
-    : '<path class="w" d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>'}</svg>`;
+// Music on / Sounds on buttons, used on the menu and during a game
+function audioToggles() {
+  const t = ui();
+  const music = h('button', { class: 'pill', id: 'music-btn', type: 'button' });
+  const sfx = h('button', { class: 'pill', id: 'sfx-btn', type: 'button' });
+  const paint = () => {
+    music.setAttribute('aria-pressed', String(Sound.music)); music.textContent = Sound.music ? t.musicOn : t.musicOff;
+    sfx.setAttribute('aria-pressed', String(Sound.on)); sfx.textContent = Sound.on ? t.soundOn : t.soundOff;
+  };
+  music.addEventListener('click', () => { Sound.toggleMusic(); paint(); });
+  sfx.addEventListener('click', () => { Sound.toggle(); paint(); });
+  paint();
+  return h('div', { class: 'toggles' }, music, sfx);
 }
 
 // ---------- state ----------
-const S = { lang: loadLang() === 'en' ? 'en' : 'ms', best: loadBest(), boardLevel: 'easy' };
+function loadLevel() { try { return localStorage.getItem('kataSprint.level') || 'easy'; } catch { return 'easy'; } }
+function saveLevel(l) { try { localStorage.setItem('kataSprint.level', l); } catch {} }
+const S = { lang: loadLang() === 'en' ? 'en' : 'ms', best: loadBest(), level: loadLevel() };
 const ui = () => T[S.lang];
 const uiL = () => S.lang === 'en' ? 1 : 0;
 
@@ -620,16 +685,16 @@ const GEN = {
   },
 };
 
-function makeRound(lvl) {
+function makeRound(lvl, only = null) {
   const types = ['scramble', 'missing', 'odd', 'clue'];
-  const seq = [];
-  while (seq.length < ROUND) {
+  const seq = only ? Array(PRACTICE).fill(only) : [];
+  while (seq.length < ROUND && !only) {
     const block = shuffle(types);
     if (seq.length && block[0] === seq[seq.length - 1]) block.push(block.shift());
     seq.push(...block);
   }
   const used = new Set();
-  return seq.slice(0, ROUND).map(type => {
+  return seq.slice(0, only ? PRACTICE : ROUND).map(type => {
     const lang = S.lang;
     const q = GEN[type](lang, lvl, used);
     used.add(q.entry.id);
@@ -639,54 +704,61 @@ function makeRound(lvl) {
 
 // ---------- menu ----------
 function renderMenu() {
-  const t = ui();
-  const L = uiL();
-  const logo = h('div', { class: 'logo', 'aria-label': 'Kata Sprint' },
-    [...'KATA'].map((c, i) => h('span', { class: 'tile', style: `animation-delay:${i * 60}ms`, 'aria-hidden': 'true' }, c)),
-    h('span', { class: 'gap' }),
-    [...'SPRINT'].map((c, i) => h('span', { class: 'tile' + (i === 0 ? ' accent' : ''), style: `animation-delay:${(i + 4) * 60}ms`, 'aria-hidden': 'true' }, c)),
-  );
-  const langs = [['ms', 'Bahasa Melayu', 'Seluruh permainan dalam BM'], ['en', 'English', 'The whole game in English']];
-  const seg = h('div', { class: 'seg two', role: 'group', 'aria-label': t.lang },
-    langs.map(([id, name, sub]) => h('button', {
-      id: 'lang-' + id, 'aria-pressed': String(S.lang === id),
+  const t = ui(), L = uiL();
+  const lvl = LEVELS.find(l => l.id === S.level) || LEVELS[0];
+  const best = S.best[`${S.lang}-${lvl.id}`];
+  const startFull = () => startGame(lvl);
+
+  const top = h('div', { class: 'top' },
+    h('div', {},
+      h('h1', { class: 'title' }, 'Kata ', h('mark', {}, 'Sprint')),
+      h('p', { class: 'lede' }, t.tagline1, h('br'), t.tagline2)),
+    h('div', { class: 'bestcard' },
+      h('span', { class: 'label' }, `${t.bestLbl} · ${lvl.name[L]}`),
+      h('div', { class: 'v num' }, best || '—'),
+      h('button', { class: 'linkbtn', type: 'button', onclick: startFull }, best ? t.bestHave : t.bestNone)));
+
+  const lvlSeg = h('div', { class: 'lvlseg', role: 'group', 'aria-label': t.levelLbl },
+    LEVELS.map((l, i) => h('button', {
+      id: 'lvl-' + l.id, type: 'button', 'aria-pressed': String(l.id === lvl.id),
+      onclick: () => { S.level = l.id; saveLevel(l.id); renderMenu(); },
+    }, h('span', { class: 'bars', 'aria-hidden': 'true' }, [0, 1, 2, 3].map(k => h('i', { class: k <= i ? 'on' : '' }))), l.name[L])));
+  const langSeg = h('div', { class: 'lvlseg', role: 'group', 'aria-label': t.langLbl },
+    [['ms', 'BM', 'Bahasa Melayu'], ['en', 'EN', 'English']].map(([id, short, full]) => h('button', {
+      id: 'lang-' + id, type: 'button', 'aria-pressed': String(S.lang === id), 'aria-label': full, title: full,
       onclick: () => { S.lang = id; saveLang(id); renderMenu(); },
-    }, name, h('small', {}, sub))));
-  const cards = LEVELS.map((lvl, i) => {
-    const best = S.best[`${S.lang}-${lvl.id}`];
-    return h('button', { class: 'lvl', id: 'lvl-' + lvl.id, onclick: () => startGame(lvl) },
-      h('div', { class: 'lvl-head' },
-        h('h3', {}, lvl.name[L]),
-        h('div', { class: 'pips', 'aria-hidden': 'true' }, [0, 1, 2, 3].map(k => h('i', { class: k <= i ? 'on' : '' })))),
-      h('dl', {},
-        h('dt', {}, t.perQ), h('dd', { class: 'num' }, `${lvl.time}${t.sec}`),
-        h('dt', {}, t.letters), h('dd', { class: 'num' }, lvl.len[1] > 50 ? `${lvl.len[0]}+` : `${lvl.len[0]}–${lvl.len[1]}`),
-        h('dt', {}, t.lives), h('dd', { class: 'num' }, lvl.lives),
-        h('dt', {}, t.hints), h('dd', { class: 'num' }, lvl.hints)),
-      h('div', { class: 'best' }, `${t.best}: `, best ? h('b', { class: 'num' }, best) : t.none));
-  });
-  const types = Object.keys(t.types).filter(k => k !== 'translate');
-  $('#menu').replaceChildren(
-    h('div', { class: 'hero' }, logo, h('p', { class: 'tagline' }, t.tagline)),
-    h('div', { class: 'section' }, h('span', { class: 'label' }, t.lang), seg),
-    h('div', { class: 'section' }, h('span', { class: 'label' }, t.level), h('div', { class: 'levels' }, cards)),
-    h('div', { class: 'section' }, h('span', { class: 'label' }, t.how),
-      h('div', { class: 'how' }, types.map(k => h('div', {}, h('b', {}, t.types[k][0]), h('span', {}, t.types[k][1]))))),
-    db ? scoreboard({ level: S.boardLevel }) : null,
-    footer(),
-  );
+    }, short)));
+
+  const controls = h('div', { class: 'controls' },
+    h('div', { class: 'ctl' }, h('span', { class: 'label' }, t.levelLbl), lvlSeg),
+    h('p', { class: 'lvldesc' }, t.lvlDesc[lvl.id]),
+    h('div', { class: 'ctl' }, h('span', { class: 'label' }, t.langLbl), langSeg),
+    audioToggles());
+
+  const banner = h('div', { class: 'banner' },
+    h('div', {}, h('h2', {}, t.fullTitle), h('p', {}, t.fullDesc)),
+    h('button', { class: 'btn-cta', id: 'start-full', type: 'button', onclick: startFull }, t.fullBtn));
+
+  const practice = h('div', { class: 'section' },
+    h('span', { class: 'label' }, t.practice),
+    h('div', { class: 'practice' }, ['scramble', 'missing', 'odd', 'clue'].map(k =>
+      h('button', { class: 'pcard', id: 'practice-' + k, type: 'button', onclick: () => startGame(lvl, k) },
+        h('b', {}, t.types[k][0]), h('span', {}, t.types[k][1]), h('small', {}, t.practiceMeta)))));
+
+  $('#menu').replaceChildren(top, controls, banner, practice,
+    db ? scoreboard({ level: lvl.id }) : null,
+    footer());
   document.documentElement.lang = S.lang;
-  updateSoundBtn();
 }
 
 // ---------- game ----------
 const G = {};
 function show(id) { for (const s of ['menu', 'game', 'result']) $('#' + s).hidden = s !== id; window.scrollTo(0, 0); }
 
-function startGame(lvl) {
+function startGame(lvl, only = null) {
   Sound.play('click');
   Object.assign(G, {
-    lvl, qs: makeRound(lvl), i: 0, score: 0, lives: lvl.lives, hints: lvl.hints,
+    lvl, mode: only, qs: makeRound(lvl, only), i: 0, score: 0, lives: lvl.lives, hints: lvl.hints,
     streak: 0, bestStreak: 0, correct: 0, log: [], busy: false,
   });
   show('game');
@@ -702,7 +774,7 @@ function renderQuestion() {
 
   const bar = h('div', { class: 'bar' },
     h('span', { class: 'chip' }, lvlName),
-    h('span', { class: 'num' }, `${t.q} ${G.i + 1}/${ROUND}`),
+    h('span', { class: 'num' }, `${t.q} ${G.i + 1}/${G.qs.length}`),
     h('div', { class: 'hearts', html: Array.from({ length: G.lvl.lives }, (_, k) => heart(k < G.lives)).join(''), 'aria-label': `${t.lives}: ${G.lives}` }),
     h('span', { class: 'spacer' }),
     h('div', { class: 'stat' }, h('span', { class: 'label' }, t.streak), h('b', { class: 'num' }, `×${G.streak}`)),
@@ -748,7 +820,8 @@ function renderQuestion() {
     b.dataset.armed = '1'; b.textContent = t.sure;
     setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = t.quit; } }, 2500);
   } }, t.quit);
-  const actions = h('div', { class: 'actions' }, quitBtn,
+  const actions = h('div', { class: 'actions' },
+    h('div', { style: 'display:flex;flex-wrap:wrap;gap:10px' }, quitBtn, audioToggles()),
     h('div', { style: 'display:flex;gap:10px' },
       q.type === 'scramble' ? h('button', { class: 'btn', id: 'clear-btn', onclick: () => { G.picks = G.picks.slice(0, G.locked); Sound.play('undo'); drawScramble(); } }, t.clear) : null,
       hintBtn));
@@ -897,7 +970,7 @@ function advance() {
   clearTimeout(G.advTimer);
   if (!G.busy) return;
   G.i++;
-  if (G.lives <= 0 || G.i >= ROUND) return renderResult();
+  if (G.lives <= 0 || G.i >= G.qs.length) return renderResult();
   renderQuestion();
 }
 
@@ -906,26 +979,26 @@ const star = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="${o
 function renderResult() {
   const t = ui(), L = uiL();
   const answered = G.log.length;
-  const acc = answered ? Math.round(100 * G.correct / ROUND) : 0;
+  const acc = answered ? Math.round(100 * G.correct / G.qs.length) : 0;
   const stars = acc >= 90 ? 3 : acc >= 70 ? 2 : acc >= 40 ? 1 : 0;
   const key = `${S.lang}-${G.lvl.id}`;
-  const isBest = G.score > 0 && G.score > (S.best[key] || 0);
+  const isBest = !G.mode && G.score > 0 && G.score > (S.best[key] || 0);
   if (isBest) { S.best[key] = G.score; saveBest(S.best); }
 
   $('#result').replaceChildren(
     h('div', { class: 'result-top' },
-      h('span', { class: 'label' }, `${G.lives <= 0 ? t.over : t.done} · ${G.lvl.name[L]}`),
+      h('span', { class: 'label' }, `${G.lives <= 0 ? t.over : t.done} · ${G.lvl.name[L]}${G.mode ? ` · ${t.practiceTag}: ${t.types[G.mode][0]}` : ''}`),
       h('div', { class: 'big num' }, G.score),
       h('div', { class: 'stars', html: [0, 1, 2].map(k => star(k < stars)).join(''), 'aria-label': `${stars}/3` }),
       isBest ? h('span', { class: 'newbest' }, t.newBest) : null),
     h('div', { class: 'stats' },
-      h('div', {}, h('span', { class: 'label' }, t.accuracy), h('b', { class: 'num' }, `${G.correct}/${ROUND}`)),
+      h('div', {}, h('span', { class: 'label' }, t.accuracy), h('b', { class: 'num' }, `${G.correct}/${G.qs.length}`)),
       h('div', {}, h('span', { class: 'label' }, t.bestStreak), h('b', { class: 'num' }, `×${G.bestStreak}`)),
       h('div', {}, h('span', { class: 'label' }, t.best), h('b', { class: 'num' }, S.best[key] || 0))),
     h('div', { class: 'actions' },
       h('button', { class: 'btn', id: 'menu-btn', onclick: () => { show('menu'); renderMenu(); } }, t.menuBtn),
-      h('button', { class: 'btn primary', id: 'again-btn', onclick: () => startGame(G.lvl) }, t.againBtn)),
-    db ? scoreboard({ level: G.lvl.id, pending: G.score > 0 ? { score: G.score, correct: G.correct, level: G.lvl.id, lang: S.lang } : null }) : null,
+      h('button', { class: 'btn primary', id: 'again-btn', onclick: () => startGame(G.lvl, G.mode) }, t.againBtn)),
+    db ? scoreboard({ level: G.lvl.id, pending: !G.mode && G.score > 0 ? { score: G.score, correct: G.correct, level: G.lvl.id, lang: S.lang } : null }) : null,
     h('div', { class: 'section' },
       h('span', { class: 'label' }, t.review),
       h('ul', { class: 'review' }, G.log.map(({ q, ok }) => {
@@ -1013,7 +1086,7 @@ function scoreboard({ level, pending = null }) {
 
   function draw() {
     const me = loadName().trim().toLowerCase();
-    const levelSelect = h('select', { id: 'sb-level', 'aria-label': t.level, onchange: e => { st.level = S.boardLevel = e.target.value; load(); } },
+    const levelSelect = h('select', { id: 'sb-level', 'aria-label': t.level, onchange: e => { st.level = e.target.value; load(); } },
       LEVELS.map(l => h('option', { value: l.id, selected: l.id === st.level ? 'selected' : false }, l.name[L])));
     const head = h('div', { class: 'sb-head' },
       h('div', {}, h('h2', {}, t.board), h('p', { class: 'sb-sub' }, `${st.tab === 'top' ? t.boardSub : t.recentSub} · `, levelSelect)),
@@ -1066,8 +1139,6 @@ function footer() {
     h('p', {}, t.tip),
     h('p', { class: 'by' }, h('span', {}, `${t.credit} `, h('b', {}, 'Auji Kamaruddin'))));
 }
-
-$('#sound-btn').addEventListener('click', () => { Sound.toggle(); updateSoundBtn(); });
 
 // ---------- keyboard ----------
 document.addEventListener('keydown', e => {
